@@ -1,19 +1,21 @@
-import 'package:alarm_app/alarm_page.dart';
 import 'package:flutter/material.dart';
+import 'alarm_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'My Flutter App',
+      title: 'Simple Alarm App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
       home: AlarmPage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

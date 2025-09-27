@@ -10,19 +10,19 @@ class AlarmPage extends StatefulWidget {
 class _AlarmPageState extends State<AlarmPage> {
   bool isEnable = true;
   bool isVibrate = false;
+
+  int Selectedindex = -1;
   @override
   Widget build(BuildContext context) {
-    TimeOfDay timeOfDay = TimeOfDay(hour: 1, minute: 40);
+    TimeOfDay timeOfDay = TimeOfDay.now();
     DateTime selectedDate = DateTime.now();
 
-    void showTime() {
-      showTimePicker(context: context, initialTime: TimeOfDay.now()).then((
-        value,
-      ) {
+    Future<void> showTime() async {
+      final picked=await showTimePicker(context: context, initialTime: timeOfDay!);
         setState(() {
-          timeOfDay = value!;
+          timeOfDay = picked!;
         });
-      });
+
     }
 
     void showDate() {
@@ -67,10 +67,27 @@ class _AlarmPageState extends State<AlarmPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(
                       7,
-                      (index) => Card(
+                      (index) => InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          setState(() {
+                            Selectedindex = index;
+                          });
+                        },
                         child: Padding(
-                          padding: const EdgeInsets.all(11),
-                          child: Text(data[index]),
+                          padding: const EdgeInsets.only(right: 20),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Selectedindex == index
+                                  ? Colors.amber
+                                  : Colors.grey,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(11),
+                              child: Text(data[index]),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -116,7 +133,7 @@ class _AlarmPageState extends State<AlarmPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: 150),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -176,6 +193,7 @@ class _AlarmPageState extends State<AlarmPage> {
                     return InkWell(
                       onTap: showDialouge,
                       child: Card(
+                        color:isEnable==true? Colors.red:Colors.blue,
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -189,18 +207,18 @@ class _AlarmPageState extends State<AlarmPage> {
                                   InkWell(
                                     onTap: showTime,
                                     child: Text(
-                                      timeOfDay.format(context).toString(),
+                                      timeOfDay.format(context),
                                       style: TextStyle(fontSize: 30),
                                     ),
                                   ),
+
                                   Switch(
                                     value: isEnable,
-                                    onChanged: ((value) {
+                                    onChanged: (v){
                                       setState(() {
-                                        isEnable = value;
-                                      });
-                                    }),
-                                  ),
+                                        isEnable = !isEnable;
+                                      });}
+                                      )
                                 ],
                               ),
                             ],
