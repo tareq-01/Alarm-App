@@ -1,5 +1,5 @@
+import 'package:alarm_app/services/app_route.dart';
 import 'package:flutter/material.dart';
-import 'alarm_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -8,14 +8,18 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    
+    return MaterialApp.router(
       title: 'Simple Alarm App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: AlarmPage(),
+      //home: SplashScreen(),
       debugShowCheckedModeBanner: false,
+      // routeInformationParser: MyAppRouter().router.routeInformationParser,
+      // routerDelegate: MyAppRouter().router.routerDelegate,
+      routerConfig: router,
     );
   }
 }

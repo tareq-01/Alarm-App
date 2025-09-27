@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'package:alarm_app/alarm_page.dart';
+
+import 'package:alarm_app/services/app_route.dart';
+import 'package:alarm_app/services/app_route_const.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,13 +16,14 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     Timer(
       Duration(seconds: 3),
-      () => Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AlarmPage()),
-      ),
+      () =>
+          //      GoRouter.of(context).pushNamed("/"),
+          router.push("/home"),
+      //GoRouter.of(context).go(AppRouteConst.homeRouteName),
     );
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
