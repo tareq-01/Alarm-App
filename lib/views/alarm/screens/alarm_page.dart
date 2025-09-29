@@ -1,0 +1,76 @@
+import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
+import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
+import 'package:alarm_app/views/alarm/widgets/alarm_list_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+// ignore: must_be_immutable
+class AlarmPage extends ConsumerWidget {
+  AlarmPage({super.key});
+
+  bool isVibrate = false;
+
+  int Selectedindex = -1;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final alarmPageController = ref.read(alarmPageProvider.notifier);
+    final alarmPageState = ref.watch(alarmPageProvider);
+    var setAlarmNotifier = ref.read(setAlarmProvider.notifier);
+    DateTime selectedDate = DateTime.now();
+
+    void showDate() {
+      showDatePicker(
+        context: context,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+        initialDate: DateTime.now(),
+      );
+    }
+
+    List<String> data = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+
+    //log("here");
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Color(0xFFd4712a),
+
+          onPressed: () async {
+            setAlarmNotifier.showDialouge(context);
+          },
+          child: Icon(Icons.add, color: Colors.white),
+        ),
+        appBar: AppBar(centerTitle: true, title: Text("Alarm App")),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: 1,
+                  itemBuilder: (context, index) {
+                    return AlarmListItem(
+                      title: "Title ",
+                      isEnable: alarmPageState.isEnable,
+                      alarmTime: DateTime.now(),
+                      //alarmTime: DateTime.now(),
+                      weekDays: "EveryDay",
+                      remainingTime: "8hr 10min",
+                      onActive: alarmPageController.selected,
+                      onTap: () {},
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
