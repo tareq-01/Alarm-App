@@ -5,6 +5,25 @@ import 'package:flutter_riverpod/legacy.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier() : super(SetAlarmState());
+  int selectedIndex = 0;
+  //List<String> data = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+  List weekdays = [
+    {'sat': DateTime.monday},
+    {'sun': DateTime.tuesday},
+    {'mon': DateTime.wednesday},
+    {'tue': DateTime.thursday},
+    {'wed': DateTime.friday},
+    {'thu': DateTime.saturday},
+    {'fri': DateTime.sunday},
+  ];
+
+void selectedDays(){
+
+}
+
+  void selectedDay(int index) {
+    state = state.copyWith(selectedDay: index);
+  }
 
   Future<void> showTime(BuildContext context) async {
     final currentTime = state.selectedTime ?? DateTime.now();

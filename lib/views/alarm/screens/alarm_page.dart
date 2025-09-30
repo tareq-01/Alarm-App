@@ -29,14 +29,13 @@ class AlarmPage extends ConsumerWidget {
       );
     }
 
-    List<String> data = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 
     //log("here");
     return SafeArea(
       top: false,
       child: Scaffold(
         floatingActionButton: FloatingActionButton(
-          backgroundColor: Color(0xFFd4712a),
+          backgroundColor: Color.fromARGB(112, 189, 130, 54),
 
           onPressed: () async {
             setAlarmNotifier.showDialouge(context);

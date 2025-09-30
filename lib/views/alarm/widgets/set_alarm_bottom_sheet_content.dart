@@ -32,7 +32,9 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text:DateFormat("hh").format(setAlarmState.selectedTime?? DateTime.now(),),
+                              text: DateFormat("hh").format(
+                                setAlarmState.selectedTime ?? DateTime.now(),
+                              ),
                               style: TextStyle(
                                 fontSize: 40,
                                 color: Colors.black,
@@ -47,7 +49,9 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                             ),
 
                             TextSpan(
-                              text: DateFormat("mm").format(setAlarmState.selectedTime??DateTime.now(),),
+                              text: DateFormat("mm").format(
+                                setAlarmState.selectedTime ?? DateTime.now(),
+                              ),
                               style: TextStyle(
                                 fontSize: 40,
                                 color: Colors.black,
@@ -55,7 +59,9 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                             ),
                             WidgetSpan(child: SizedBox(width: 6)),
                             TextSpan(
-                              text: DateFormat("a").format(setAlarmState.selectedTime??DateTime.now(),),
+                              text: DateFormat("a").format(
+                                setAlarmState.selectedTime ?? DateTime.now(),
+                              ),
                               style: TextStyle(
                                 fontSize: 20,
                                 color: Colors.black,
@@ -74,33 +80,33 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Row(
-              //   mainAxisSize: MainAxisSize.min,
-              //   children: List.generate(
-              //     7,
-              //     (index) => InkWell(
-              //       borderRadius: BorderRadius.circular(20),
-              //       onTap: () {
-              //         Selectedindex = index;
-              //       },
-              //       child: Padding(
-              //         padding: const EdgeInsets.only(right: 7),
-              //         child: Container(
-              //           decoration: BoxDecoration(
-              //             borderRadius: BorderRadius.circular(20),
-              //             color: Selectedindex == index
-              //                 ? Colors.amber
-              //                 : Colors.grey,
-              //           ),
-              //           child: Padding(
-              //             padding: const EdgeInsets.all(11),
-              //             child: Text(data[index]),
-              //           ),
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(
+                  7,
+                  (index) => InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      setAlarmNotifier.selectedDay(index);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 7),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: setAlarmState.selectedDay == index
+                              ? Colors.amber
+                              : Colors.grey,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(11),
+                          child: Text(setAlarmNotifier.weekdays[index]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(height: 12),
               // Row(
               //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -143,32 +149,21 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
               //     ),
               //   ],
               // ),
-              SizedBox(height: 100),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadiusGeometry.circular(12),
-                      ),
-                    ),
-                    onPressed: () {},
-                    child: Text("Delete"),
-                  ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.blue,
+              SizedBox(height: 150),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Color(0xFFd4712a),
 
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadiusGeometry.circular(12),
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadiusGeometry.circular(12),
                     ),
-                    onPressed: () {},
-                    child: Text("Save", style: TextStyle(color: Colors.white)),
                   ),
-                ],
+                  onPressed: () {},
+                  child: Text("Save", style: TextStyle(color: Colors.white)),
+                ),
               ),
             ],
           ),
