@@ -1,5 +1,6 @@
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
+import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
 import 'package:alarm_app/views/alarm/widgets/alarm_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,9 +56,9 @@ class AlarmPage extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     return AlarmListItem(
                       title: "Title ",
+                      //title:alarmPageController.alarms,
                       isEnable: alarmPageState.isEnable,
                       alarmTime: DateTime.now(),
-                      //alarmTime: DateTime.now(),
                       weekDays: "EveryDay",
                       remainingTime: "8hr 10min",
                       onActive: alarmPageController.selected,

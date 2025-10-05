@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 class AlarmPageNotifier extends StateNotifier<AlarmState> {
   AlarmPageNotifier() : super(AlarmState());
 
+
   TimeOfDay timeOfDay = TimeOfDay.now();
   DateTime selectedDate = DateTime.now();
   //TimeOfDay.fromDateTime(DateTime time);

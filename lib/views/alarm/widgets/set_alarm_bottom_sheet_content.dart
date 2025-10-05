@@ -87,20 +87,29 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                   (index) => InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () {
-                      setAlarmNotifier.selectedDay(index);
+                      setAlarmNotifier.selectedDay(
+                        setAlarmNotifier.weekdays[index],
+                      );
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(right: 7),
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: setAlarmState.selectedDay == index
-                              ? Colors.amber
+                          color:
+                              (setAlarmState.selectedDays ?? []).any(
+                                (e) => setAlarmNotifier.weekdays[index]
+                                    .containsKey(e.keys.first),
+                              )
+                              ? Color(0xFFd4712a)
                               : Colors.grey,
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(11),
-                          child: Text(setAlarmNotifier.weekdays[index]),
+                          child: Text(
+                            setAlarmNotifier.day(index),
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
@@ -137,19 +146,21 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                 children: [Text("Rington"), Text("Ringtone Name")],
               ),
               SizedBox(height: 16),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     Text("Vibrate"),
-              //     Switch(
-              //       value: isVibrate,
-              //       onChanged: ((value6) {
-              //         isVibrate = value6;
-              //       }),
-              //     ),
-              //   ],
-              // ),
-              SizedBox(height: 150),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Vibrate"),
+                  Switch(
+                    value: setAlarmState.isVibrate ?? false,
+                    onChanged: ((value6) {
+                      setAlarmState.isVibrate = value6;
+                    }),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Text("Title"),
+              SizedBox(height: 100),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -161,7 +172,9 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                       borderRadius: BorderRadiusGeometry.circular(12),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    setAlarmNotifier.saveAlarm();
+                  },
                   child: Text("Save", style: TextStyle(color: Colors.white)),
                 ),
               ),

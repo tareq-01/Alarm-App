@@ -39,6 +39,7 @@ dependencies:
   alarm: ^5.1.5
   go_router: ^16.2.4
   flutter_riverpod: ^3.0.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
