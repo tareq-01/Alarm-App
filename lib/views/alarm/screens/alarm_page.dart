@@ -57,7 +57,7 @@ class AlarmPage extends ConsumerWidget {
                     var item = alarmPageState.alarms![index];
 
                     return AlarmListItem(
-                      title: "Title ",
+                      title: item.title??null,
                       //title:alarmPageController.alarms,
                       isEnable: item.isEnable ?? false,
                       alarmTime: item.dateTime,

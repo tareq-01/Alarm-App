@@ -41,13 +41,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         selectedDayList.add(item);
       }
 
-      //   if (checkValue) {
-      //     selectedDayList.remove(value);
-      //   } else {
-      //     selectedDayList.add(value);
-      //   }
-      //   log("SelectedList $selectedDayList".toString());
-      // }
+
     }
 
     state = state.copyWith(selectedDays: selectedDayList);
@@ -96,9 +90,11 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     AlarmModel alarmModel = AlarmModel(
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: state.selectedDays ?? [],
-      title: state.title,
+      title: teController.text.trim(),
+
       isEnable: true,
     );
+    teController.clear();
     final updatedList = List<AlarmModel>.from(
       alarmPageNotifier.state.alarms ?? [],
     );
