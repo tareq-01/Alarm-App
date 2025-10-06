@@ -38,28 +38,12 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         selectedDayList.add(item);
       }
 
-      // for (var value in selectedDayList) {
-      //   bool checkValue = value.containsKey(item.keys.first);
-      //   if (checkValue) {
-      //     selectedDayList.remove(value);
-      //   } else {
-      //     selectedDayList.add(value);
-      //   }
-      //   log("SelectedList $selectedDayList".toString());
-      // }
+
     }
 
-    // String dayKey = state.selectedDays![index].keys.first;
 
-    // if (selectedDays.contains(dayKey)) {
-    //   selectedDays.remove(dayKey);
-    // } else {
-    //   selectedDays.add(dayKey);
-    // }
-    log(" select1${selectedDayList}".toString());
 
     state = state.copyWith(selectedDays: selectedDayList);
-    log(" select2${state.selectedDays}".toString());
   }
 
   String day(int index) {
@@ -93,7 +77,9 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     AlarmModel alarmModel = AlarmModel(
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: state.selectedDays ?? [],
+
     );
+   
 
  
   }
