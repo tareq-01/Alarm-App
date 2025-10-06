@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-class AlarmListItem extends StatelessWidget {
+class AlarmListItem extends ConsumerWidget {
   const AlarmListItem({
     super.key,
     this.title,
-    this.isEnable,
+    this.isEnable = false,
     this.weekDays,
     this.remainingTime,
     this.onActive,
@@ -15,7 +15,7 @@ class AlarmListItem extends StatelessWidget {
     this.alarmTime,
   });
   final String? title;
-  final bool? isEnable;
+  final bool isEnable;
   final String? weekDays;
   final String? remainingTime;
   final Function(bool)? onActive;
@@ -23,11 +23,12 @@ class AlarmListItem extends StatelessWidget {
   final DateTime? alarmTime;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final alarmPageController = ref.read(alarmPageProvider.notifier);
     return InkWell(
       onTap: onTap,
       child: Card(
-        color: isEnable! ? Colors.grey : Color(0xFFd4712a),
+        color: isEnable ? Colors.grey : Color(0xFFd4712a),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -39,12 +40,12 @@ class AlarmListItem extends StatelessWidget {
                   Text(
                     title.toString(),
                     style: TextStyle(
-                      color: isEnable! ? Colors.black : Colors.white,
+                      color: isEnable ? Colors.black : Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  Switch(value: isEnable!, onChanged: onActive),
+                  Switch(value: isEnable, onChanged: onActive),
                 ],
               ),
               Consumer(

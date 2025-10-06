@@ -1,14 +1,17 @@
 import 'dart:developer';
 
+import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
-  SetAlarmNotifier() : super(SetAlarmState());
+  SetAlarmNotifier(this.ref) : super(SetAlarmState());
+  final Ref ref;
   int selectedIndex = 0;
+  final TextEditingController teController = TextEditingController();
   List<Map<String, dynamic>> weekdays = [
     {'Sat': DateTime.monday},
     {'Sun': DateTime.tuesday},
@@ -38,8 +41,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         selectedDayList.add(item);
       }
 
-      // for (var value in selectedDayList) {
-      //   bool checkValue = value.containsKey(item.keys.first);
       //   if (checkValue) {
       //     selectedDayList.remove(value);
       //   } else {
@@ -49,21 +50,21 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       // }
     }
 
-    // String dayKey = state.selectedDays![index].keys.first;
-
-    // if (selectedDays.contains(dayKey)) {
-    //   selectedDays.remove(dayKey);
-    // } else {
-    //   selectedDays.add(dayKey);
-    // }
-    log(" select1${selectedDayList}".toString());
-
     state = state.copyWith(selectedDays: selectedDayList);
-    log(" select2${state.selectedDays}".toString());
   }
 
   String day(int index) {
     return weekdays[index].keys.first;
+  }
+
+  String? days() {
+    if (state.selectedDays!.isEmpty) {
+      return "Select Day";
+    } else if (state.selectedDays!.length == 7) {
+      return "everyday";
+    } else {
+      return state.selectedDays!.map((dayMap) => dayMap.keys.first).join(', ');
+    }
   }
 
   Future<void> showTime(BuildContext context) async {
@@ -89,13 +90,24 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     }
   }
 
-  void saveAlarm() {
+  void saveAlarm(String text) {
+    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+
     AlarmModel alarmModel = AlarmModel(
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: state.selectedDays ?? [],
+      title: state.title,
+      isEnable: true,
+    );
+    final updatedList = List<AlarmModel>.from(
+      alarmPageNotifier.state.alarms ?? [],
+    );
+    updatedList.add(alarmModel);
+    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+      alarms: updatedList,
     );
 
- 
+    log(alarmPageNotifier.state.alarms.toString());
   }
 
   void showDialouge(BuildContext context) {
@@ -109,5 +121,5 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 }
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
-  (ref) => SetAlarmNotifier(),
+  (ref) => SetAlarmNotifier(ref),
 );

@@ -2,15 +2,17 @@ class AlarmModel {
   String? title;
   DateTime dateTime;
   List selectedDays;
-  String?ringToneName;
+  String? ringToneName;
   bool? isVibrate;
-  
+  bool? isEnable;
+
   AlarmModel({
-     this.title,
+    this.title,
     required this.dateTime,
     required this.selectedDays,
-     this.ringToneName,
-     this.isVibrate,
+    this.ringToneName,
+    this.isVibrate,
+    this.isEnable
   });
 
   Map<String, dynamic> toJson() {
@@ -20,7 +22,7 @@ class AlarmModel {
       "selectedDays": selectedDays,
       "ringToneName": ringToneName,
       "isVibrate": isVibrate,
+      "isEnable":isEnable
     };
   }
-
 }

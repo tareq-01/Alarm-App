@@ -30,7 +30,6 @@ class AlarmPage extends ConsumerWidget {
       );
     }
 
-
     //log("here");
     return SafeArea(
       top: false,
@@ -51,17 +50,20 @@ class AlarmPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ListView.builder(
+                  physics: NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
-                  itemCount: 1,
+                  itemCount: alarmPageState.alarms!.length,
                   itemBuilder: (context, index) {
+                    var item = alarmPageState.alarms![index];
+
                     return AlarmListItem(
                       title: "Title ",
                       //title:alarmPageController.alarms,
-                      isEnable: alarmPageState.isEnable,
-                      alarmTime: DateTime.now(),
-                      weekDays: "EveryDay",
+                      isEnable: item.isEnable ?? false,
+                      alarmTime: item.dateTime,
+                      weekDays: alarmPageController.days(index),
                       remainingTime: "8hr 10min",
-                      onActive: alarmPageController.selected,
+                      onActive: (bool value) => alarmPageController.toggleSwitch(index),
                       onTap: () {},
                     );
                   },

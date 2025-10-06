@@ -159,7 +159,29 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                 ],
               ),
               SizedBox(height: 20),
-              Text("Title"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Title"),
+
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: TextFormField(
+                      controller: setAlarmNotifier.teController,
+                      decoration: InputDecoration(border: OutlineInputBorder()),
+
+                      validator: (String? value) {
+                        if (value?.isEmpty ?? true) {
+                          return null;
+                        } else {
+                          Text("Enter Alarm title");
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
               SizedBox(height: 100),
               SizedBox(
                 width: double.infinity,
@@ -173,7 +195,11 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                     ),
                   ),
                   onPressed: () {
-                    setAlarmNotifier.saveAlarm();
+                    setAlarmNotifier.saveAlarm(
+                      setAlarmNotifier.teController.toString(),
+                    );
+                    setAlarmNotifier.teController;
+                    Navigator.pop(context);
                   },
                   child: Text("Save", style: TextStyle(color: Colors.white)),
                 ),
