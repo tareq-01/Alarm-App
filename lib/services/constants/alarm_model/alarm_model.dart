@@ -25,4 +25,14 @@ class AlarmModel {
       "isEnable":isEnable
     };
   }
+    factory AlarmModel.fromJson(Map<String, dynamic> json) {
+    return AlarmModel(
+      title: json["title"],
+      dateTime: DateTime.parse(json["dateTime"]), // Convert back to DateTime
+      selectedDays: List.from(json["selectedDays"]), // Create list from JSON array
+      ringToneName: json["ringToneName"],
+      isVibrate: json["isVibrate"],
+      isEnable: json["isEnable"],
+    );
+  }
 }

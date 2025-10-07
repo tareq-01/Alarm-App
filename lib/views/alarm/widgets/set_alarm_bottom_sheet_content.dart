@@ -1,4 +1,5 @@
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
+import 'package:alarm_app/services/constants/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -75,7 +76,13 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                       onTap: () async {
                         await setAlarmNotifier.showTime(context);
                       },
-                      child: Text("Edit"),
+                      child: Text(
+                        "Edit",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -143,13 +150,22 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-                children: [Text("Rington"), Text("Ringtone Name")],
+                children: [
+                  Text(
+                    "Rington",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  Text("Ringtone Name"),
+                ],
               ),
               SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Vibrate"),
+                  Text(
+                    "Vibrate",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                   Switch(
                     value: setAlarmState.isVibrate ?? false,
                     onChanged: ((value6) {
@@ -162,22 +178,27 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Title"),
+                  Text(
+                    "Title",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
 
                   SizedBox(
-                    width: 150,
-                    height: 50,
+                    width: 120,
+                    height: 40,
                     child: TextFormField(
-                      controller: setAlarmNotifier.teController,
-                      decoration: InputDecoration(border: OutlineInputBorder()),
+                      textAlign: TextAlign.start,
+                      //textAlignVertical: TextAlignVertical.center,
 
-                      validator: (String? value) {
-                        if (value?.isEmpty ?? true) {
-                          return null;
-                        } else {
-                          Text("Enter Alarm title");
-                        }
-                      },
+                      controller: setAlarmNotifier.teController,
+                      decoration: InputDecoration(
+                        filled: true,
+                            isDense: true,
+
+                        fillColor: Colors.white,
+                        hintText: "Alarm Title",
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
                 ],
@@ -194,9 +215,10 @@ class SetAlarmBottomSheetContent extends ConsumerWidget {
                       borderRadius: BorderRadiusGeometry.circular(12),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async{
                     setAlarmNotifier.saveAlarm(
                       setAlarmNotifier.teController.toString(),
+
                     );
                     setAlarmNotifier.teController;
                     Navigator.pop(context);

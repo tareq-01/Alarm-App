@@ -44,6 +44,7 @@ class AlarmPageNotifier extends StateNotifier<AlarmState> {
 
     return item.selectedDays.map((dayMap) => dayMap.keys.first).join(', ');
   }
+  
 }
 
 final alarmPageProvider = StateNotifierProvider<AlarmPageNotifier, AlarmState>(

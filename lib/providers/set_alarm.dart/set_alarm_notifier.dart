@@ -1,8 +1,7 @@
-import 'dart:developer';
-
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
+import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,8 +39,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       } else {
         selectedDayList.add(item);
       }
-
-
     }
 
     state = state.copyWith(selectedDays: selectedDayList);
@@ -84,7 +81,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     }
   }
 
-  void saveAlarm(String text) {
+  void saveAlarm(String text) async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
 
     AlarmModel alarmModel = AlarmModel(
@@ -92,8 +89,9 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       selectedDays: state.selectedDays ?? [],
       title: teController.text.trim(),
 
-      isEnable: true,
+      isEnable: false,
     );
+    //await AuthUtility.saveAlarm([alarmModel]);
     teController.clear();
     final updatedList = List<AlarmModel>.from(
       alarmPageNotifier.state.alarms ?? [],
@@ -102,8 +100,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
       alarms: updatedList,
     );
-
-    log(alarmPageNotifier.state.alarms.toString());
+    await AuthUtility().saveAlarm(alarmPageNotifier.state.alarms ?? []);
   }
 
   void showDialouge(BuildContext context) {
