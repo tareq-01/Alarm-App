@@ -13,8 +13,8 @@ class SplashScreenNotifier extends StateNotifier<dynamic> {
   }
   void timeDuration() async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-  List<AlarmModel> alarmList=  await AuthUtility().getAlarm(); 
-  
+  List<AlarmModel> alarmList=  await AuthUtility().getAlarm();
+    state = state.copyWith(alarms: alarmList);
     Timer(Duration(seconds: 2), () => router.push("/home"));
   }
 }
