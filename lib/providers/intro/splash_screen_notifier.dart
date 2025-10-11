@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/services/app_route.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
@@ -12,9 +11,13 @@ class SplashScreenNotifier extends StateNotifier<dynamic> {
     timeDuration();
   }
   void timeDuration() async {
+    // await AuthUtility().clearAlarm();
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-  List<AlarmModel> alarmList=  await AuthUtility().getAlarm();
-    state = state.copyWith(alarms: alarmList);
+    List<AlarmModel> alarmList = await AuthUtility().getAlarm();
+    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+      alarms: alarmList,
+    );
+    //state = state.copyWith(alarms: alarmList);
     Timer(Duration(seconds: 2), () => router.push("/home"));
   }
 }

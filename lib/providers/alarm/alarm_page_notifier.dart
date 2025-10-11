@@ -1,6 +1,5 @@
-import 'dart:developer';
-
 import 'package:alarm_app/providers/alarm/alarm_state.dart';
+import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,10 +16,13 @@ class AlarmPageNotifier extends StateNotifier<AlarmState> {
   String formattedTime = DateFormat("hh:mm a").format(DateTime.now());
 
   void toggleSwitch(int index) {
+    final alarmPageNotifier = ref.read(setAlarmProvider.notifier);
+
     final update = List<AlarmModel>.from(state.alarms!);
-    log("Update $update".toString());
     update[index].isEnable = !(update[index].isEnable ?? true);
     state = state.copyWith(alarms: update);
+
+    
   }
 
   Future<void> showTime(BuildContext context) async {
@@ -44,7 +46,6 @@ class AlarmPageNotifier extends StateNotifier<AlarmState> {
 
     return item.selectedDays.map((dayMap) => dayMap.keys.first).join(', ');
   }
-  
 }
 
 final alarmPageProvider = StateNotifierProvider<AlarmPageNotifier, AlarmState>(

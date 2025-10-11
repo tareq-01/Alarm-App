@@ -1,4 +1,5 @@
 class AlarmModel {
+  int? id;
   String? title;
   DateTime dateTime;
   List selectedDays;
@@ -7,29 +8,35 @@ class AlarmModel {
   bool? isEnable;
 
   AlarmModel({
+    this.id,
     this.title,
     required this.dateTime,
     required this.selectedDays,
     this.ringToneName,
     this.isVibrate,
-    this.isEnable
+    this.isEnable,
   });
 
   Map<String, dynamic> toJson() {
     return {
+      "id":id,
       "title": title,
-      "dateTime": dateTime,
+      "dateTime": dateTime.toIso8601String(),
       "selectedDays": selectedDays,
       "ringToneName": ringToneName,
       "isVibrate": isVibrate,
-      "isEnable":isEnable
+      "isEnable": isEnable,
     };
   }
-    factory AlarmModel.fromJson(Map<String, dynamic> json) {
+
+  factory AlarmModel.fromJson(Map<String, dynamic> json) {
     return AlarmModel(
+      id: json["id"],
       title: json["title"],
       dateTime: DateTime.parse(json["dateTime"]), // Convert back to DateTime
-      selectedDays: List.from(json["selectedDays"]), // Create list from JSON array
+      selectedDays: List.from(
+        json["selectedDays"],
+      ), // Create list from JSON array
       ringToneName: json["ringToneName"],
       isVibrate: json["isVibrate"],
       isEnable: json["isEnable"],

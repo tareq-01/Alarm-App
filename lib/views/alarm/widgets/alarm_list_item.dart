@@ -24,30 +24,44 @@ class AlarmListItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alarmPageController = ref.read(alarmPageProvider.notifier);
     return InkWell(
+      borderRadius: BorderRadius.circular(28),
       onTap: onTap,
       child: Card(
-        color: isEnable ? Colors.grey : Color(0xFFd4712a),
+        color: isEnable
+            ? Color.fromRGBO(235, 65, 127, 1)
+            : Color.fromRGBO(238, 143, 178, 1),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     title.toString(),
                     style: TextStyle(
-                      color: isEnable ? Colors.black : Colors.white,
+                      color: isEnable ? Colors.white : Colors.black,
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  Switch(value: isEnable, onChanged: onActive),
+                  SizedBox(
+                    height: 30,
+                    width: 50,
+                    child: Switch(
+                      padding: EdgeInsets.zero,
+                      value: isEnable,
+                      onChanged: onActive,
+                      materialTapTargetSize:
+                          MaterialTapTargetSize.shrinkWrap, // This is the key
+                    ),
+                  ),
                 ],
               ),
+              SizedBox(height: 10),
               Consumer(
                 builder: (context, ref, widget) {
                   final alarmListController = ref.read(
@@ -67,8 +81,8 @@ class AlarmListItem extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 40,
                               color: isEnable == true
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           TextSpan(
@@ -77,8 +91,8 @@ class AlarmListItem extends ConsumerWidget {
                               fontSize: 40,
 
                               color: isEnable == true
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
 
@@ -89,8 +103,8 @@ class AlarmListItem extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 40,
                               color: isEnable == true
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           WidgetSpan(child: SizedBox(width: 6)),
@@ -101,8 +115,8 @@ class AlarmListItem extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 20,
                               color: isEnable == true
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           // TextSpan(
@@ -130,21 +144,21 @@ class AlarmListItem extends ConsumerWidget {
                 },
               ),
 
-              SizedBox(height: 30),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     weekDays.toString(),
                     style: TextStyle(
-                      color: isEnable == true ? Colors.black : Colors.white,
+                      color: isEnable == true ? Colors.white : Colors.black,
                     ),
                   ),
 
                   Text(
                     remainingTime.toString(),
                     style: TextStyle(
-                      color: isEnable == true ? Colors.black : Colors.white,
+                      color: isEnable == true ? Colors.white : Colors.black,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

@@ -19,7 +19,7 @@ class SetAlarmState {
     bool? isVibrate,
     DateTime? selectedTime,
     int? selectedDay,
-      String? title,
+    String? title,
 
     List<Map<String, dynamic>>? selectedDays,
   }) {
@@ -30,7 +30,7 @@ class SetAlarmState {
       selectedTime: selectedTime ?? this.selectedTime,
       selectedDay: selectedDay ?? this.selectedDay,
       selectedDays: selectedDays ?? this.selectedDays,
-      title: title??this.title,
+      title: title ?? this.title,
     );
   }
 }
