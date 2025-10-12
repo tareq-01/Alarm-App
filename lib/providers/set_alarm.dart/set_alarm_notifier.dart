@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:alarm/alarm.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
@@ -132,19 +130,12 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
-    state = state.copyWith(
-      isEnable: alarm.isEnable,
-      selectedDays:alarm.selectedDays
-          ?.map((e) => Map<String, dynamic>.from(e))
-          .toList(),
-      selectedTime: alarm.dateTime,
-
-
-
-
-
+    // final alarmPageNotifier = ref.read(alarmPageProvider.notifier)
+    state = state.copyWith(isEnable: alarm.isEnable,
+      selectedDays: state.selectedDays ?? [],
+    
+    
     );
-    log("here");
     showModalBottomSheet(
       isScrollControlled: true,
       enableDrag: true,
