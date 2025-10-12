@@ -111,7 +111,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: state.selectedDays ?? [],
       title: teController.text.trim(),
-      isEnable: false,
+      isEnable: state.isEnable!,
     );
     teController.clear();
     final updatedList = List<AlarmModel>.from(
@@ -130,11 +130,15 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
-    // final alarmPageNotifier = ref.read(alarmPageProvider.notifier)
-    state = state.copyWith(isEnable: alarm.isEnable,
-      selectedDays: state.selectedDays ?? [],
-    
-    
+    state = state.copyWith(
+      isEnable: alarm.isEnable,
+      selectedDays: alarm.selectedDays
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(),
+      selectedTime: alarm.dateTime,
+
+      editingAlarmId: alarm.id,
+      title: alarm.title,
     );
     showModalBottomSheet(
       isScrollControlled: true,
@@ -149,6 +153,39 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         );
       },
     );
+  }
+
+  void updateAlarm() async {
+    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+
+    final updatedList = List<AlarmModel>.from(
+      alarmPageNotifier.state.alarms ?? [],
+    );
+
+    final index = updatedList.indexWhere(
+      (alarm) => alarm.id == state.editingAlarmId,
+    );
+    final removePreviousAlarm = updatedList[index].id;
+
+    await Alarm.stop(removePreviousAlarm!);
+
+    AlarmModel updatedAlarm = AlarmModel(
+      id: state.editingAlarmId,
+      dateTime: state.selectedTime ?? DateTime.now(),
+      selectedDays: state.selectedDays ?? [],
+      title: teController.text.trim(),
+      isEnable: state.isEnable,
+    );
+
+    updatedList[index] = updatedAlarm;
+
+    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+      alarms: updatedList,
+    );
+
+    await AuthUtility().saveAlarm(updatedList);
+
+    await setAlarm(updatedAlarm);
   }
 
   void resetData() {
@@ -174,12 +211,15 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   Future<void> setAlarm(AlarmModel alarm) async {
-    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-
     final alarmSettings = AlarmSettings(
       id: alarm.id!,
-      dateTime: state.selectedTime ?? DateTime.now(),
+      dateTime: state.selectedTime!,
       assetAudioPath: 'assets/sounds/alarm1.mp3',
+      warningNotificationOnKill: false,
+      androidFullScreenIntent: false,
+      allowAlarmOverlap: true,
+      iOSBackgroundAudio: false,
+      androidStopAlarmOnTermination: true,
 
       notificationSettings: NotificationSettings(
         title: teController.text.toString(),

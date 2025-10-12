@@ -1,6 +1,5 @@
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
-import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
 import 'package:alarm_app/views/alarm/widgets/alarm_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 
 // ignore: must_be_immutable
 class AlarmPage extends ConsumerWidget {
-  AlarmPage({super.key});
+  const AlarmPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,25 +37,22 @@ class AlarmPage extends ConsumerWidget {
           ),
           appBar: AppBar(
             centerTitle: true,
-            title: Text("Alarm App"),
+            title: Text(
+              "Alarm App",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w500),
+            ),
+
             leading: SizedBox(),
           ),
           body: Stack(
             children: [
               alarmPageState.alarms!.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.alarm, size: 70),
-                          Text(
-                            "No Alarm",
-                            style: TextStyle(
-                              fontSize: 50,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      child: Image.asset(
+                        "assets/images/alarm3.png",
+                        height: 200,
+                        width: 200,
+                        fit: BoxFit.cover,
                       ),
                     )
                   : SingleChildScrollView(
@@ -109,7 +105,7 @@ class AlarmPage extends ConsumerWidget {
                                     child: InkWell(
                                       child: AlarmListItem(
                                         title: item.title,
-                                        isEnable: item.isEnable ?? false,
+                                        isEnable: item.isEnable!,
                                         alarmTime: item.dateTime,
                                         weekDays: alarmPageController.days(
                                           index,

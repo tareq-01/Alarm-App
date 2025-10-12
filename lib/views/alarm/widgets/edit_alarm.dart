@@ -1,10 +1,11 @@
+import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class EditAlarmButton extends ConsumerWidget {
-   EditAlarmButton({super.key});
+  const EditAlarmButton({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var setAlarmNotifier = ref.read(setAlarmProvider.notifier);
@@ -181,11 +182,13 @@ class EditAlarmButton extends ConsumerWidget {
                 ),
                 onPressed: () async {
                   //setAlarmNotifier.editAlarm(context);
+                  setAlarmNotifier.updateAlarm();
+
                   setAlarmNotifier.teController;
                   Navigator.pop(context);
                 },
                 child: Text(
-                  "Edit",
+                  "Update",
                   style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
               ),

@@ -13,8 +13,8 @@ class SplashScreen extends ConsumerWidget {
       body: Center(
         child: Image.asset(
           "assets/images/bell.png",
-          height: 100,
-          width: 100,
+          height: 200,
+          width: 200,
           fit: BoxFit.cover,
         ),
       ),
