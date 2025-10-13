@@ -2,11 +2,13 @@ import 'package:alarm/alarm.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
+import 'package:alarm_app/services/constants/alarm_volume_manager.dart';
 import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/edit_alarm.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState());
@@ -126,7 +128,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     // save to local
     await AuthUtility().saveAlarm(alarmPageNotifier.state.alarms ?? []);
     // alarm set
-    await setAlarm(alarmModel);
+    AlarmVolumeManager().setAlarm(alarmModel);
   }
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
@@ -211,6 +213,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   Future<void> setAlarm(AlarmModel alarm) async {
+    // Alarm settings
     final alarmSettings = AlarmSettings(
       id: alarm.id!,
       dateTime: state.selectedTime!,
@@ -220,14 +223,15 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       allowAlarmOverlap: true,
       iOSBackgroundAudio: false,
       androidStopAlarmOnTermination: true,
-
       notificationSettings: NotificationSettings(
         title: teController.text.toString(),
         body: 'This is the body',
         stopButton: 'Stop',
       ),
+      // volumeSettings: VolumeSettings.fade(fadeDuration: Duration(), ),
       volumeSettings: VolumeSettings.fixed(),
     );
+
     await Alarm.set(alarmSettings: alarmSettings);
   }
 }

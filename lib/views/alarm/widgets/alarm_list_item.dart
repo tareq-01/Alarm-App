@@ -67,78 +67,73 @@ class AlarmListItem extends ConsumerWidget {
                   final alarmListController = ref.read(
                     alarmPageProvider.notifier,
                   );
-                  return InkWell(
-                    onTap: () async {
-                      alarmListController.showTime(context);
-                    },
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: DateFormat(
-                              "hh",
-                            ).format(alarmTime ?? DateTime.now()),
-                            style: TextStyle(
-                              fontSize: 40,
-                              color: isEnable == true
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
+                  return RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: DateFormat(
+                            "hh",
+                          ).format(alarmTime ?? DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 40,
+                            color: isEnable == true
+                                ? Colors.white
+                                : Colors.black,
                           ),
-                          TextSpan(
-                            text: ":",
-                            style: TextStyle(
-                              fontSize: 40,
-
-                              color: isEnable == true
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
+                        ),
+                        TextSpan(
+                          text: ":",
+                          style: TextStyle(
+                            fontSize: 40,
+                  
+                            color: isEnable == true
+                                ? Colors.white
+                                : Colors.black,
                           ),
-
-                          TextSpan(
-                            text: DateFormat(
-                              "mm",
-                            ).format(alarmTime ?? DateTime.now()),
-                            style: TextStyle(
-                              fontSize: 40,
-                              color: isEnable == true
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
+                        ),
+                  
+                        TextSpan(
+                          text: DateFormat(
+                            "mm",
+                          ).format(alarmTime ?? DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 40,
+                            color: isEnable == true
+                                ? Colors.white
+                                : Colors.black,
                           ),
-                          WidgetSpan(child: SizedBox(width: 6)),
-                          TextSpan(
-                            text: DateFormat(
-                              "a",
-                            ).format(alarmTime ?? DateTime.now()),
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: isEnable == true
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
+                        ),
+                        WidgetSpan(child: SizedBox(width: 6)),
+                        TextSpan(
+                          text: DateFormat(
+                            "a",
+                          ).format(alarmTime ?? DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: isEnable == true
+                                ? Colors.white
+                                : Colors.black,
                           ),
-                          // TextSpan(
-                          //   text: alarmTime?.toString(),
-                          //   style: TextStyle(
-                          //     fontSize: 40,
-                          //     color: isEnable == true ? Colors.black : Colors.white,
-                          //   ),
-                          // ),
-                          // TextSpan(
-                          //   text:
-                          //       // timeOfDay.period == DayPeriod.am
-                          //       // ? "AM"
-                          //       // : "PM",
-                          //       alarmTime.toString(),
-                          //   style: TextStyle(
-                          //     fontSize: 20,
-                          //     color: isEnable == true ? Colors.black : Colors.white,
-                          //   ),
-                          // ),
-                        ],
-                      ),
+                        ),
+                        // TextSpan(
+                        //   text: alarmTime?.toString(),
+                        //   style: TextStyle(
+                        //     fontSize: 40,
+                        //     color: isEnable == true ? Colors.black : Colors.white,
+                        //   ),
+                        // ),
+                        // TextSpan(
+                        //   text:
+                        //       // timeOfDay.period == DayPeriod.am
+                        //       // ? "AM"
+                        //       // : "PM",
+                        //       alarmTime.toString(),
+                        //   style: TextStyle(
+                        //     fontSize: 20,
+                        //     color: isEnable == true ? Colors.black : Colors.white,
+                        //   ),
+                        // ),
+                      ],
                     ),
                   );
                 },
