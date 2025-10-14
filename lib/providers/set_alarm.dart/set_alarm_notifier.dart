@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:alarm/alarm.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
@@ -8,7 +10,6 @@ import 'package:alarm_app/views/alarm/widgets/edit_alarm.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState());
@@ -213,26 +214,44 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   Future<void> setAlarm(AlarmModel alarm) async {
-    // Alarm settings
-    final alarmSettings = AlarmSettings(
-      id: alarm.id!,
-      dateTime: state.selectedTime!,
-      assetAudioPath: 'assets/sounds/alarm1.mp3',
-      warningNotificationOnKill: false,
-      androidFullScreenIntent: false,
-      allowAlarmOverlap: true,
-      iOSBackgroundAudio: false,
-      androidStopAlarmOnTermination: true,
-      notificationSettings: NotificationSettings(
-        title: teController.text.toString(),
-        body: 'This is the body',
-        stopButton: 'Stop',
-      ),
-      // volumeSettings: VolumeSettings.fade(fadeDuration: Duration(), ),
-      volumeSettings: VolumeSettings.fixed(),
+    final selectedDays = alarm.selectedDays;
+
+    for (final day in selectedDays) {
+      final nextDate = _getNextWeekday(day, state.selectedTime!);
+
+      final alarmSettings = AlarmSettings(
+        id: alarm.id!,
+        dateTime: nextDate,
+        assetAudioPath: 'assets/sounds/alarm1.mp3',
+        notificationSettings: NotificationSettings(
+          title: teController.text.toString(),
+          body: 'This is the body',
+          stopButton: 'Stop',
+        ),
+        volumeSettings: VolumeSettings.fixed(),
+      );
+
+      await Alarm.set(alarmSettings: alarmSettings);
+    }
+  }
+
+  DateTime _getNextWeekday(int weekday, DateTime baseTime) {
+    final now = DateTime.now();
+    final timeOfDay = TimeOfDay.fromDateTime(baseTime);
+
+    var date = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      timeOfDay.hour,
+      timeOfDay.minute,
     );
 
-    await Alarm.set(alarmSettings: alarmSettings);
+    while (date.weekday != weekday || date.isBefore(now)) {
+      date = date.add(Duration(days: 1));
+    }
+
+    return date;
   }
 }
 
