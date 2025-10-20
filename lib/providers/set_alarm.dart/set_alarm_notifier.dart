@@ -1,10 +1,8 @@
 import 'dart:developer';
-
 import 'package:alarm/alarm.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
-import 'package:alarm_app/services/constants/alarm_volume_manager.dart';
 import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/edit_alarm.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
@@ -17,13 +15,13 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   int selectedIndex = 0;
   final TextEditingController teController = TextEditingController();
   List<Map<String, dynamic>> weekdays = [
-    {'Sat': DateTime.monday},
-    {'Sun': DateTime.tuesday},
-    {'Mon': DateTime.wednesday},
-    {'Tue': DateTime.thursday},
-    {'Wed': DateTime.friday},
-    {'Thu': DateTime.saturday},
-    {'Fri': DateTime.sunday},
+    {'Sat': DateTime.saturday},
+    {'Sun': DateTime.sunday},
+    {'Mon': DateTime.monday},
+    {'Tue': DateTime.tuesday},
+    {'Wed': DateTime.wednesday},
+    {'Thu': DateTime.thursday},
+    {'Fri': DateTime.friday},
   ];
 
   void toggleVibrate() {
@@ -129,7 +127,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     // save to local
     await AuthUtility().saveAlarm(alarmPageNotifier.state.alarms ?? []);
     // alarm set
-    AlarmVolumeManager().setAlarm(alarmModel);
+    await setAlarm(alarmModel);
   }
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
@@ -139,7 +137,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
           .map((e) => Map<String, dynamic>.from(e))
           .toList(),
       selectedTime: alarm.dateTime,
-
       editingAlarmId: alarm.id,
       title: alarm.title,
     );
@@ -216,44 +213,169 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   Future<void> setAlarm(AlarmModel alarm) async {
     final selectedDays = alarm.selectedDays;
 
-    for (final day in selectedDays) {
-      final nextDate = _getNextWeekday(day, state.selectedTime!);
+    List<String> dayNames = selectedDays
+        .map((dayMap) => dayMap.keys.first.toString())
+        .toList();
 
-      final alarmSettings = AlarmSettings(
-        id: alarm.id!,
-        dateTime: nextDate,
-        assetAudioPath: 'assets/sounds/alarm1.mp3',
-        notificationSettings: NotificationSettings(
-          title: teController.text.toString(),
-          body: 'This is the body',
-          stopButton: 'Stop',
-        ),
-        volumeSettings: VolumeSettings.fixed(),
-      );
 
-      await Alarm.set(alarmSettings: alarmSettings);
-    }
-  }
-
-  DateTime _getNextWeekday(int weekday, DateTime baseTime) {
-    final now = DateTime.now();
-    final timeOfDay = TimeOfDay.fromDateTime(baseTime);
-
-    var date = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      timeOfDay.hour,
-      timeOfDay.minute,
+    DateTime nextAlarmDateTime = calculateAlarmDateTime(
+      dayNames,
+      alarm.dateTime.hour,
+      alarm.dateTime.minute,
     );
 
-    while (date.weekday != weekday || date.isBefore(now)) {
-      date = date.add(Duration(days: 1));
+    final alarmSettings = AlarmSettings(
+      id: alarm.id!,
+      dateTime: nextAlarmDateTime,
+      assetAudioPath: 'assets/sounds/alarm1.mp3',
+      notificationSettings: NotificationSettings(
+        title: alarm.title ?? 'Alarm',
+        body: 'Time to wake up!',
+        stopButton: 'Stop',
+      ),
+      volumeSettings: VolumeSettings.fixed(),
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+    alarmListener();
+  }
+
+
+
+  DateTime calculateAlarmDateTime(
+    List<String> selectedDays,
+    int hour,
+    int minute,
+  ) {
+    final weekdayMap = {
+      'Sat': DateTime.saturday,
+      'Sun': DateTime.sunday,
+      'Mon': DateTime.monday,
+      'Tue': DateTime.tuesday,
+      'Wed': DateTime.wednesday,
+      'Thu': DateTime.thursday,
+      'Fri': DateTime.friday,
+    };
+
+    DateTime now = DateTime.now();
+    List<int> selectedWeekdays = selectedDays
+        .map((day) => weekdayMap[day]!)
+        .toList();
+
+    int currentWeekday = now.weekday;
+    bool isCurrentDaySelected = selectedWeekdays.contains(currentWeekday);
+
+    DateTime todayAlarm = DateTime(now.year, now.month, now.day, hour, minute);
+
+    if (isCurrentDaySelected) {
+      if (now.isBefore(todayAlarm)) {
+        return todayAlarm;
+      } else {
+        return findNextAlarmDate(
+          selectedWeekdays,
+          currentWeekday,
+          hour,
+          minute,
+          now,
+        );
+      }
+    } else {
+      return findNextAlarmDate(
+        selectedWeekdays,
+        currentWeekday,
+        hour,
+        minute,
+        now,
+      );
+    }
+  }
+
+  DateTime findNextAlarmDate(
+    List<int> selectedWeekdays,
+    int currentWeekday,
+    int hour,
+    int minute,
+    DateTime now,
+  ) {
+    selectedWeekdays.sort();
+
+    for (int day in selectedWeekdays) {
+      if (day > currentWeekday) {
+        int daysToAdd = day - currentWeekday;
+        return DateTime(now.year, now.month, now.day + daysToAdd, hour, minute);
+      }
     }
 
-    return date;
+    int firstWeekday = selectedWeekdays.first;
+    int daysToAdd = (7 - currentWeekday) + firstWeekday;
+
+    return DateTime(now.year, now.month, now.day + daysToAdd, hour, minute);
   }
+
+  String getDayName(int weekday) {
+    final dayNames = {
+      DateTime.saturday: 'Saturday',
+      DateTime.sunday: 'Sunday',
+      DateTime.monday: 'Monday',
+      DateTime.tuesday: 'Tuesday',
+      DateTime.wednesday: 'Wednesday',
+      DateTime.thursday: 'Thursday',
+      DateTime.friday: 'Friday',
+    };
+    return dayNames[weekday]!;
+  }
+
+void alarmListener() {
+  Alarm.ringStream.stream.listen((alarmSettings) {
+    log("Alarm is ringing: ${alarmSettings.id}");
+  });
 }
+
+void newAlarm(int id) async {
+    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+  final alarms = alarmPageNotifier.state.alarms ?? [];
+
+  final ringingAlarm = alarms.firstWhere(
+    (alarm) => alarm.id == id,
+    orElse: () => AlarmModel(),
+  );
+
+  if (ringingAlarm.id == null) {
+    log("No alarm found for id: $id");
+    return;
+  }
+
+  final selectedDays = ringingAlarm.selectedDays ?? [];
+
+  if (selectedDays.isEmpty) {
+    log("Alarm ${ringingAlarm.id} has no repeat days, stopping.");
+    return;
+  }
+
+  final weekdayMap = {
+    'Sat': DateTime.saturday,
+    'Sun': DateTime.sunday,
+    'Mon': DateTime.monday,
+    'Tue': DateTime.tuesday,
+    'Wed': DateTime.wednesday,
+    'Thu': DateTime.thursday,
+    'Fri': DateTime.friday,
+  };
+
+  final selectedWeekdays = selectedDays
+      .map((dayMap) => weekdayMap[dayMap.keys.first]!)
+      .toList();
+
+
+
+
+
+}
+
+}
+
+
+
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
   (ref) => SetAlarmNotifier(ref),

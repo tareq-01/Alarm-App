@@ -110,7 +110,7 @@ class AlarmPage extends ConsumerWidget {
                                         weekDays: alarmPageController.days(
                                           index,
                                         ),
-                                        remainingTime: "8hr 10min",
+                                        remainingTime: "5hr 10 min",
                                         onActive: (bool value) {
                                           alarmPageController.toggleSwitch(
                                             index,
