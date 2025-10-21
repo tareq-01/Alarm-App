@@ -8,6 +8,8 @@ import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../views/alarm/widgets/edit_alarm.dart';
+
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState());
   final Ref ref;
@@ -216,7 +218,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         .map((dayMap) => dayMap.keys.first.toString())
         .toList();
 
-
     DateTime nextAlarmDateTime = calculateAlarmDateTime(
       dayNames,
       alarm.dateTime.hour,
@@ -238,8 +239,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     await Alarm.set(alarmSettings: alarmSettings);
     alarmListener();
   }
-
-
 
   DateTime calculateAlarmDateTime(
     List<String> selectedDays,
@@ -324,56 +323,64 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return dayNames[weekday]!;
   }
 
-void alarmListener() {
-  Alarm.ringStream.stream.listen((alarmSettings) {
-    log("Alarm is ringing: ${alarmSettings.id}");
-  });
-}
+  void alarmListener() {
+    Alarm.ringStream.stream.listen((alarmSettings) {
+      log("Alarm is ringing: ${alarmSettings.id}");
+      newAlarm(alarmSettings.id);
 
-void newAlarm(int id) async {
+    });
+  }
+
+  void newAlarm(int alarmId) async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-  final alarms = alarmPageNotifier.state.alarms ?? [];
+    final alarms = alarmPageNotifier.state.alarms ?? [];
 
-  final ringingAlarm = alarms.firstWhere(
-    (alarm) => alarm.id == id,
-    orElse: () => AlarmModel(),
-  );
+    final ringingAlarm = alarms.firstWhere(
+          (alarm) => alarm.id == alarmId,
+      orElse: () => AlarmModel(dateTime: DateTime.now(), selectedDays: []),
+    );
 
-  if (ringingAlarm.id == null) {
-    log("No alarm found for id: $id");
-    return;
+    if (ringingAlarm.id == null) {
+      log("No alarm found for id: $alarmId");
+      return;
+    }
+
+    final selectedDays = ringingAlarm.selectedDays ?? [];
+
+    if (selectedDays.isEmpty) {
+      log("Alarm ${ringingAlarm.id} has no repeat days, stopping.");
+      await Alarm.stop(alarmId);
+      return;
+    }
+
+    List<String> dayNames = selectedDays
+        .map((dayMap) => dayMap.keys.first.toString())
+        .toList();
+
+    DateTime nextAlarmDateTime = calculateAlarmDateTime(
+      dayNames,
+      ringingAlarm.dateTime.hour,
+      ringingAlarm.dateTime.minute,
+    );
+
+    final alarmSettings = AlarmSettings(
+      id: alarmId,
+      dateTime: nextAlarmDateTime,
+      assetAudioPath: 'assets/sounds/alarm1.mp3',
+      notificationSettings: NotificationSettings(
+        title: ringingAlarm.title ?? 'Alarm',
+        body: 'Time to wake up!',
+        stopButton: 'Stop',
+      ),
+      volumeSettings: VolumeSettings.fixed(),
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+    log("Alarm rescheduled for: $nextAlarmDateTime");
   }
-
-  final selectedDays = ringingAlarm.selectedDays ?? [];
-
-  if (selectedDays.isEmpty) {
-    log("Alarm ${ringingAlarm.id} has no repeat days, stopping.");
-    return;
-  }
-
-  final weekdayMap = {
-    'Sat': DateTime.saturday,
-    'Sun': DateTime.sunday,
-    'Mon': DateTime.monday,
-    'Tue': DateTime.tuesday,
-    'Wed': DateTime.wednesday,
-    'Thu': DateTime.thursday,
-    'Fri': DateTime.friday,
-  };
-
-  final selectedWeekdays = selectedDays
-      .map((dayMap) => weekdayMap[dayMap.keys.first]!)
-      .toList();
-
-
-
 
 
 }
-
-}
-
-
 
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
