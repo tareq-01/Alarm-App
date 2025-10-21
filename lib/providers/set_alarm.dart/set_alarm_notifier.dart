@@ -11,7 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
-  SetAlarmNotifier(this.ref) : super(SetAlarmState());
+  SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
+    alarmListener();
+  }
   final Ref ref;
   int selectedIndex = 0;
   final TextEditingController teController = TextEditingController();
@@ -211,6 +213,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
   }
 
+  ///For Alarm Set
   Future<void> setAlarm(AlarmModel alarm) async {
     final selectedDays = alarm.selectedDays;
 
@@ -237,7 +240,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
-    alarmListener();
   }
 
   DateTime calculateAlarmDateTime(
@@ -324,34 +326,25 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   void alarmListener() {
-    Alarm.ringStream.stream.listen((alarmSettings) {
-      log("Alarm is ringing: ${alarmSettings.id}");
-      newAlarm(alarmSettings.id);
+    Alarm.ringStream.stream.listen(
+      (alarmSettings) {
+        state = state.copyWith(alarmRingId: alarmSettings.id);
+        log("message");
+      },
 
-    });
+      onDone: () {
+        newAlarm(state.alarmRingId);
+      },
+    );
   }
 
-  void newAlarm(int alarmId) async {
+  void newAlarm(int? alarmId) async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
     final alarms = alarmPageNotifier.state.alarms ?? [];
 
-    final ringingAlarm = alarms.firstWhere(
-          (alarm) => alarm.id == alarmId,
-      orElse: () => AlarmModel(dateTime: DateTime.now(), selectedDays: []),
-    );
+    final ringingAlarm = alarms.firstWhere((alarm) => alarm.id == alarmId);
 
-    if (ringingAlarm.id == null) {
-      log("No alarm found for id: $alarmId");
-      return;
-    }
-
-    final selectedDays = ringingAlarm.selectedDays ?? [];
-
-    if (selectedDays.isEmpty) {
-      log("Alarm ${ringingAlarm.id} has no repeat days, stopping.");
-      await Alarm.stop(alarmId);
-      return;
-    }
+    final selectedDays = ringingAlarm.selectedDays;
 
     List<String> dayNames = selectedDays
         .map((dayMap) => dayMap.keys.first.toString())
@@ -364,24 +357,84 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     final alarmSettings = AlarmSettings(
-      id: alarmId,
+      id: alarmId!,
       dateTime: nextAlarmDateTime,
       assetAudioPath: 'assets/sounds/alarm1.mp3',
       notificationSettings: NotificationSettings(
-        title: ringingAlarm.title ?? 'Alarm',
+        title: teController.text,
         body: 'Time to wake up!',
-        stopButton: 'Stop',
+        stopButton: 'Stop button',
       ),
       volumeSettings: VolumeSettings.fixed(),
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
-    log("Alarm rescheduled for: $nextAlarmDateTime");
   }
 
+  ///For Time Remaining
+  String getRemainingTime(AlarmModel alarm) {
+    final now = DateTime.now();
+    final selectedDays = alarm.selectedDays;
 
+    List<int> selectedWeekdays = selectedDays
+        .map((dayMap) => dayMap.values.first as int)
+        .toList();
+
+    List<DateTime> alarmTimeList = [];
+
+    for (int weekday in selectedWeekdays) {
+      DateTime nextAlarm = fullAlarmTime(
+        weekday,
+        alarm.dateTime.hour,
+        alarm.dateTime.minute,
+        now,
+      );
+      alarmTimeList.add(nextAlarm);
+    }
+
+    DateTime nextAlarmTime = alarmTimeList.first;
+
+    Duration diff = nextAlarmTime.difference(now);
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    log(diff.inHours.toString());
+    log(hours.toString());
+    final minutes = diff.inMinutes % 60;
+    log(diff.inMinutes.toString());
+    log(minutes.toString());
+
+    if (days > 0) {
+      return "$days days $hours hr $minutes min";
+    } else if (hours > 0) {
+      return "$hours hr $minutes min";
+    } else {
+      return "$minutes min";
+    }
+  }
+
+  DateTime fullAlarmTime(int weekday, int hour, int minute, DateTime now) {
+    int currentWeekday = now.weekday;
+
+    int daysToAdd = (weekday - currentWeekday) % 7;
+    if (daysToAdd == 0) {
+      final todayAlarm = DateTime(now.year, now.month, now.day, hour, minute);
+      if (now.isAfter(todayAlarm)) {
+        daysToAdd = 7;
+      }
+    }
+
+    DateTime nextAlarmDate = DateTime(
+      now.year,
+      now.month,
+      now.day + daysToAdd,
+      hour,
+      minute,
+    );
+
+    return nextAlarmDate;
+  }
 }
-
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
   (ref) => SetAlarmNotifier(ref),

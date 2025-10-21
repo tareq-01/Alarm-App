@@ -6,6 +6,7 @@ class SetAlarmState {
   String? title;
   List<Map<String, dynamic>>? selectedDays;
   int? editingAlarmId;
+  int? alarmRingId;
 
   SetAlarmState({
     this.isEnable = true,
@@ -14,16 +15,19 @@ class SetAlarmState {
     this.selectedDay = 0,
     this.title,
     this.editingAlarmId,
+    this.alarmRingId,
     this.selectedDays = const [],
   });
 
   SetAlarmState copyWith({
-    bool? isEnable=true,
+    bool? isEnable = true,
     bool? isVibrate,
     DateTime? selectedTime,
     int? selectedDay,
     String? title,
     int? editingAlarmId,
+      int? alarmRingId,
+
 
     List<Map<String, dynamic>>? selectedDays,
   }) {
@@ -35,6 +39,7 @@ class SetAlarmState {
       selectedDays: selectedDays ?? this.selectedDays,
       title: title ?? this.title,
       editingAlarmId: editingAlarmId ?? this.editingAlarmId,
+      alarmRingId: alarmRingId??this.alarmRingId,
     );
   }
 }
