@@ -1,150 +1,69 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:alarm/alarm.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/material.dart';
 
-class AlarmService {
-  static AudioPlayer? _audioPlayer;
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
+}
 
-  // Set alarm with custom audio configuration
-  static Future<void> setAlarm({
-    required int id,
-    required DateTime dateTime,
-    required String assetAudioPath,
-    String notificationTitle = 'Alarm',
-    String notificationBody = 'Your alarm is ringing!',
-  }) async {
-    // Use the alarm package for scheduling and notifications
-    // but disable its audio
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: dateTime,
-      assetAudioPath: "assets/sounds/alarm1.mp3",
-      loopAudio: false, // Disable alarm package audio
-      vibrate: true,
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-      androidFullScreenIntent: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 0,
-        fadeDuration: Duration(seconds: 5),
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Simple Alarm App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      notificationSettings: NotificationSettings( title: 'This is the title',
-    body: 'This is the body',
-    stopButton: 'Stop the alarm',
-    icon: 'notification_icon',
-    iconColor: Color(0xff862778),),
+      debugShowCheckedModeBanner: false,
+      home: AlarmScreen(),
     );
-
-    await Alarm.set(alarmSettings: alarmSettings);
-  }
-
-  // Play alarm sound using alarm volume
-  static Future<void> playAlarmSound(String assetPath) async {
-    try {
-      // Configure audio session to use ALARM audio stream
-      final session = await AudioSession.instance;
-      await session.configure(
-        const AudioSessionConfiguration(
-          avAudioSessionCategory: AVAudioSessionCategory.playback,
-          avAudioSessionCategoryOptions:
-              AVAudioSessionCategoryOptions.duckOthers,
-          avAudioSessionMode: AVAudioSessionMode.defaultMode,
-          androidAudioAttributes: AndroidAudioAttributes(
-            contentType: AndroidAudioContentType.sonification,
-            usage: AndroidAudioUsage.alarm, // THIS IS THE KEY!
-          ),
-          androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
-        ),
-      );
-
-      // Create and configure audio player
-      _audioPlayer = AudioPlayer();
-      await _audioPlayer!.setAsset(assetPath);
-      await _audioPlayer!.setLoopMode(LoopMode.one);
-      await _audioPlayer!.setVolume(1.0);
-
-      // Play the alarm sound
-      await _audioPlayer!.play();
-    } catch (e) {
-      print('Error playing alarm sound: $e');
-    }
-  }
-
-  // Stop alarm sound
-  static Future<void> stopAlarmSound() async {
-    if (_audioPlayer != null) {
-      await _audioPlayer!.stop();
-      await _audioPlayer!.dispose();
-      _audioPlayer = null;
-    }
-  }
-
-  // Stop alarm (both notification and sound)
-  static Future<void> stopAlarm(int id) async {
-    await Alarm.stop(id);
-    await stopAlarmSound();
   }
 }
 
-// Example usage in your alarm screen
-class AlarmRingingScreen extends StatefulWidget {
-  final int alarmId;
+// ===================================================
+// lib/screens/alarm_screen.dart
 
-  const AlarmRingingScreen({Key? key, required this.alarmId}) : super(key: key);
-
+class AlarmScreen extends StatefulWidget {
   @override
-  State<AlarmRingingScreen> createState() => _AlarmRingingScreenState();
+  _AlarmScreenState createState() => _AlarmScreenState();
 }
 
-class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Play alarm sound when screen appears
-    AlarmService.playAlarmSound('assets/sounds/alarm1.mp3');
-  }
+class _AlarmScreenState extends State<AlarmScreen> {
+  final AlarmAudioPlayer _audioPlayer = AlarmAudioPlayer();
 
   @override
   void dispose() {
-    // Stop alarm sound when screen is disposed
-    AlarmService.stopAlarmSound();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('Alarm Audio')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.alarm, size: 100),
-            const SizedBox(height: 20),
-            const Text(
-              'Alarm Ringing!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () async {
-                await AlarmService.stopAlarm(widget.alarmId);
-                Navigator.of(context).pop();
+              onPressed: () {
+                _audioPlayer.initializeAndPlay('assets/sounds/alarm1.mp3');
               },
-              child: const Text('Stop Alarm'),
+              child: Text('Play Alarm'),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                await AlarmService.stopAlarm(widget.alarmId);
-                // Set snooze alarm (e.g., 5 minutes later)
-                await AlarmService.setAlarm(
-                  id: widget.alarmId,
-                  dateTime: DateTime.now().add(const Duration(minutes: 5)),
-                  assetAudioPath: 'assets/sounds/alarm1.mp3',
-                );
-                Navigator.of(context).pop();
+              onPressed: () {
+                _audioPlayer.stop();
               },
-              child: const Text('Snooze (5 min)'),
+              child: Text('Stop Alarm'),
             ),
           ],
         ),
@@ -153,59 +72,66 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
   }
 }
 
-// In your main app, listen for alarms
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+// ===================================================
+// lib/services/alarm_audio_player.dart
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
+class AlarmAudioPlayer {
+  final AudioPlayer _player = AudioPlayer();
+  static const platform = MethodChannel('com.example.alarm_app/audio');
 
-class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    // Listen for alarm rings
-    Alarm.ringStream.stream.listen((alarmSettings) {
-      // Navigate to alarm ringing screen
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => AlarmRingingScreen(alarmId: alarmSettings.id),
+  Future<void> initializeAndPlay(String audioPath) async {
+    try {
+      // Set audio stream to ALARM via platform channel
+      await _setAlarmAudioStream();
+
+      // Configure audio session
+      final session = await AudioSession.instance;
+      await session.configure(
+        AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playback,
+          avAudioSessionMode: AVAudioSessionMode.defaultMode,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.duckOthers,
+          androidAudioAttributes: const AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.sonification,
+            usage: AndroidAudioUsage.alarm,
+          ),
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         ),
       );
-    });
+
+      // Load and play audio
+      await _player.setAsset(audioPath);
+      await _player.play();
+    } catch (e) {
+      print('Error playing audio: $e');
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Alarm App',
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Alarm App')),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () async {
-              // Example: Set alarm for 5 seconds from now
-              await AlarmService.setAlarm(
-                id: 1,
-                dateTime: DateTime.now().add(const Duration(seconds: 5)),
-                assetAudioPath: 'assets/alarm.mp3',
-              );
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   const SnackBar(content: Text('Alarm set for 5 seconds')),
-              // );
-            },
-            child: const Text('Set Test Alarm (5 sec)'),
-          ),
-        ),
-      ),
-    );
+  Future<void> _setAlarmAudioStream() async {
+    try {
+      await platform.invokeMethod('setAlarmStream');
+    } on PlatformException catch (e) {
+      print("Failed to set alarm stream: '${e.message}'.");
+    }
+  }
+
+  Future<void> stop() async {
+    await _player.stop();
+    await _resetAudioStream();
+  }
+
+  Future<void> _resetAudioStream() async {
+    try {
+      await platform.invokeMethod('resetAudioStream');
+    } on PlatformException catch (e) {
+      print("Failed to reset audio stream: '${e.message}'.");
+    }
+  }
+
+  void dispose() {
+    _player.dispose();
   }
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Alarm.init();
 
-  runApp((MyApp()));
-}

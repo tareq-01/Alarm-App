@@ -7,7 +7,7 @@ import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:just_audio/just_audio.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
@@ -240,6 +240,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
+    
   }
 
   DateTime calculateAlarmDateTime(
@@ -435,6 +436,8 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return nextAlarmDate;
   }
 }
+
+
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
   (ref) => SetAlarmNotifier(ref),
