@@ -157,7 +157,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     AlarmModel alarmModel = AlarmModel(
       id: DateTime.now().millisecondsSinceEpoch % 10000,
       dateTime: state.selectedTime ?? DateTime.now(),
-      selectedDays: state.selectedDays ?? [],
+      selectedDays: state.selectedDays ??[],
       title: teController.text.trim(),
       isEnable: true,
       isVibrate: state.isVibrate ?? true,
