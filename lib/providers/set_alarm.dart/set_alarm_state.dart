@@ -29,7 +29,7 @@ class SetAlarmState {
       int? alarmRingId,
 
 
-    List<Map<String, dynamic>>? selectedDays,
+    List<Map<String, dynamic>>? selectedDays,  
   }) {
     return SetAlarmState(
       isEnable: isEnable ?? this.isEnable,

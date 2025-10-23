@@ -5,10 +5,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
-}
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   runApp(MyApp());
+// }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -112,7 +112,6 @@ class AlarmAudioPlayer {
     try {
       await platform.invokeMethod('setAlarmStream');
     } on PlatformException catch (e) {
-      print("Failed to set alarm stream: '${e.message}'.");
     }
   }
 

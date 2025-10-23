@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'dart:developer';
-import 'package:alarm/alarm.dart';
+import 'package:alarm_app/main2.dart';
+import 'package:alarm_app/services/app_route.dart';
+import 'package:alarm_app/views/alarm/widgets/alarm_ring_screeen.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
@@ -7,16 +11,21 @@ import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
-    alarmListener();
+    _initializeAudioPlayer();
   }
+
   final Ref ref;
   int selectedIndex = 0;
   final TextEditingController teController = TextEditingController();
+
+  final AlarmAudioPlayer _audioPlayer = AlarmAudioPlayer();
+  static const platform = MethodChannel('com.example.alarm_app/audio');
+
   List<Map<String, dynamic>> weekdays = [
     {'Sat': DateTime.saturday},
     {'Sun': DateTime.sunday},
@@ -27,8 +36,44 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     {'Fri': DateTime.friday},
   ];
 
+  Future<void> _initializeAudioPlayer() async {
+    try {
+      await setAlarmAudio();
+
+      final session = await AudioSession.instance;
+      await session.configure(
+        AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playback,
+          avAudioSessionMode: AVAudioSessionMode.defaultMode,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.duckOthers,
+          androidAudioAttributes: AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.sonification,
+            usage: AndroidAudioUsage.alarm,
+            flags: AndroidAudioFlags.audibilityEnforced,
+          ),
+        ),
+      );
+    } catch (e) {
+      log('Error initializing audio player: $e');
+    }
+  }
+
+  Future<void> setAlarmAudio() async {
+    try {
+      await platform.invokeMethod('setAlarmStream');
+    } on PlatformException catch (e) {}
+  }
+
+  Future<void> playAlarmSound() async {
+    await _audioPlayer.stop();
+    await setAlarmAudio();
+    await _audioPlayer.initializeAndPlay('assets/sounds/alarm1.mp3');
+    // Navigator.pop(context);
+  }
+
   void toggleVibrate() {
-    state = state.copyWith(isVibrate: state.isVibrate!);
+    state = state.copyWith(isVibrate: !state.isVibrate!);
   }
 
   void selectedDay(Map<String, dynamic> item) {
@@ -93,18 +138,17 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
   void deleteAlarm(int index) async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final alarms = alarmPageNotifier.state.alarms ?? [];
 
-    final updatedAlarms = List<AlarmModel>.from(
-      alarmPageNotifier.state.alarms ?? [],
-    );
+    if (index < alarms.length) {
+      final updatedAlarms = List<AlarmModel>.from(alarms);
+      updatedAlarms.removeAt(index);
 
-    updatedAlarms.removeAt(index);
-    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-      alarms: updatedAlarms,
-    );
-    await AuthUtility().saveAlarm(updatedAlarms);
-    final alarmId = updatedAlarms[index].id;
-    await Alarm.stop(alarmId!);
+      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+        alarms: updatedAlarms,
+      );
+      await AuthUtility().saveAlarm(updatedAlarms);
+    }
   }
 
   void saveAlarm(String text) async {
@@ -115,22 +159,24 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: state.selectedDays ?? [],
       title: teController.text.trim(),
-      isEnable: state.isEnable!,
+      isEnable: true,
+      isVibrate: state.isVibrate ?? true,
     );
+
     teController.clear();
     final updatedList = List<AlarmModel>.from(
       alarmPageNotifier.state.alarms ?? [],
     );
-    // list add
+
     updatedList.add(alarmModel);
-    // ui update
     alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
       alarms: updatedList,
     );
-    // save to local
-    await AuthUtility().saveAlarm(alarmPageNotifier.state.alarms ?? []);
-    // alarm set
-    await setAlarm(alarmModel);
+
+    await AuthUtility().saveAlarm(updatedList);
+    await scheduleAlarm(alarmModel);
+
+    resetData();
   }
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
@@ -142,7 +188,9 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       selectedTime: alarm.dateTime,
       editingAlarmId: alarm.id,
       title: alarm.title,
+      isVibrate: alarm.isVibrate,
     );
+
     showModalBottomSheet(
       isScrollControlled: true,
       enableDrag: true,
@@ -160,35 +208,37 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
   void updateAlarm() async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final alarms = alarmPageNotifier.state.alarms ?? [];
 
-    final updatedList = List<AlarmModel>.from(
-      alarmPageNotifier.state.alarms ?? [],
-    );
-
-    final index = updatedList.indexWhere(
+    final index = alarms.indexWhere(
       (alarm) => alarm.id == state.editingAlarmId,
     );
-    final removePreviousAlarm = updatedList[index].id;
 
-    await Alarm.stop(removePreviousAlarm!);
+    if (index != -1) {
+      AlarmModel updatedAlarm = AlarmModel(
+        id: state.editingAlarmId,
+        dateTime: state.selectedTime ?? DateTime.now(),
+        selectedDays: state.selectedDays ?? [],
+        title: teController.text.trim(),
+        isEnable: state.isEnable ?? true,
+        isVibrate: state.isVibrate ?? true,
+      );
 
-    AlarmModel updatedAlarm = AlarmModel(
-      id: state.editingAlarmId,
-      dateTime: state.selectedTime ?? DateTime.now(),
-      selectedDays: state.selectedDays ?? [],
-      title: teController.text.trim(),
-      isEnable: state.isEnable,
-    );
+      final updatedList = List<AlarmModel>.from(alarms);
+      updatedList[index] = updatedAlarm;
 
-    updatedList[index] = updatedAlarm;
+      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+        alarms: updatedList,
+      );
 
-    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-      alarms: updatedList,
-    );
+      await AuthUtility().saveAlarm(updatedList);
 
-    await AuthUtility().saveAlarm(updatedList);
+      if (updatedAlarm.isEnable == true) {
+        await scheduleAlarm(updatedAlarm);
+      }
+    }
 
-    await setAlarm(updatedAlarm);
+    resetData();
   }
 
   void resetData() {
@@ -213,34 +263,65 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
   }
 
-  ///For Alarm Set
-  Future<void> setAlarm(AlarmModel alarm) async {
-    final selectedDays = alarm.selectedDays;
+  Future<void> scheduleAlarm(AlarmModel alarm) async {
+    final nextAlarmTime = getNextAlarmDateTime(alarm);
+    final duration = nextAlarmTime.difference(DateTime.now());
 
+    if (duration.inSeconds > 1) {
+      Timer(duration, () {
+        triggerAlarm(alarm);
+      });
+    }
+  }
+
+  void triggerAlarm(AlarmModel alarm) async {
+    showAlarmRingDialog(alarm);
+
+    await playAlarmSound();
+    state = state.copyWith(alarmRingId: alarm.id);
+  }
+
+  void showAlarmRingDialog(AlarmModel alarm) {
+    final alarm = router.routerDelegate.navigatorKey.currentContext;
+
+    if (alarm != null) {
+      showModalBottomSheet(
+        isScrollControlled: true,
+        enableDrag: true,
+        context: alarm,
+        builder: (context) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.top,
+            ),
+            child: AlarmRingScreen(
+              alarmTitle: 'Title',
+              onStop: () async {
+                await stopAlarm();
+                Navigator.pop(context);
+              },
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> stopAlarm() async {
+    await _audioPlayer.stop();
+  }
+
+  DateTime getNextAlarmDateTime(AlarmModel alarm) {
+    final selectedDays = alarm.selectedDays;
     List<String> dayNames = selectedDays
         .map((dayMap) => dayMap.keys.first.toString())
         .toList();
 
-    DateTime nextAlarmDateTime = calculateAlarmDateTime(
+    return calculateAlarmDateTime(
       dayNames,
       alarm.dateTime.hour,
       alarm.dateTime.minute,
     );
-
-    final alarmSettings = AlarmSettings(
-      id: alarm.id!,
-      dateTime: nextAlarmDateTime,
-      assetAudioPath: 'assets/sounds/alarm1.mp3',
-      notificationSettings: NotificationSettings(
-        title: alarm.title ?? 'Alarm',
-        body: 'Time to wake up!',
-        stopButton: 'Stop',
-      ),
-      volumeSettings: VolumeSettings.fixed(),
-    );
-
-    await Alarm.set(alarmSettings: alarmSettings);
-    
   }
 
   DateTime calculateAlarmDateTime(
@@ -326,84 +407,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return dayNames[weekday]!;
   }
 
-  void alarmListener() {
-    Alarm.ringStream.stream.listen(
-      (alarmSettings) {
-        state = state.copyWith(alarmRingId: alarmSettings.id);
-        log("message");
-      },
-
-      onDone: () {
-        newAlarm(state.alarmRingId);
-      },
-    );
-  }
-
-  void newAlarm(int? alarmId) async {
-    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-    final alarms = alarmPageNotifier.state.alarms ?? [];
-
-    final ringingAlarm = alarms.firstWhere((alarm) => alarm.id == alarmId);
-
-    final selectedDays = ringingAlarm.selectedDays;
-
-    List<String> dayNames = selectedDays
-        .map((dayMap) => dayMap.keys.first.toString())
-        .toList();
-
-    DateTime nextAlarmDateTime = calculateAlarmDateTime(
-      dayNames,
-      ringingAlarm.dateTime.hour,
-      ringingAlarm.dateTime.minute,
-    );
-
-    final alarmSettings = AlarmSettings(
-      id: alarmId!,
-      dateTime: nextAlarmDateTime,
-      assetAudioPath: 'assets/sounds/alarm1.mp3',
-      notificationSettings: NotificationSettings(
-        title: teController.text,
-        body: 'Time to wake up!',
-        stopButton: 'Stop button',
-      ),
-      volumeSettings: VolumeSettings.fixed(),
-    );
-
-    await Alarm.set(alarmSettings: alarmSettings);
-  }
-
-  ///For Time Remaining
   String getRemainingTime(AlarmModel alarm) {
     final now = DateTime.now();
-    final selectedDays = alarm.selectedDays;
-
-    List<int> selectedWeekdays = selectedDays
-        .map((dayMap) => dayMap.values.first as int)
-        .toList();
-
-    List<DateTime> alarmTimeList = [];
-
-    for (int weekday in selectedWeekdays) {
-      DateTime nextAlarm = fullAlarmTime(
-        weekday,
-        alarm.dateTime.hour,
-        alarm.dateTime.minute,
-        now,
-      );
-      alarmTimeList.add(nextAlarm);
-    }
-
-    DateTime nextAlarmTime = alarmTimeList.first;
-
+    final nextAlarmTime = getNextAlarmDateTime(alarm);
     Duration diff = nextAlarmTime.difference(now);
 
     final days = diff.inDays;
     final hours = diff.inHours % 24;
-    log(diff.inHours.toString());
-    log(hours.toString());
     final minutes = diff.inMinutes % 60;
-    log(diff.inMinutes.toString());
-    log(minutes.toString());
 
     if (days > 0) {
       return "$days days $hours hr $minutes min";
@@ -436,8 +447,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return nextAlarmDate;
   }
 }
-
-
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
   (ref) => SetAlarmNotifier(ref),

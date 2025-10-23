@@ -1,6 +1,5 @@
 package com.example.alarm_app
 
-//class MainActivity : FlutterActivity();
 
 import android.media.AudioManager
 import android.os.Bundle
