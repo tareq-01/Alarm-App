@@ -13,11 +13,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
+import 'package:intl/intl.dart';
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
     _initializeAudioPlayer();
   }
+  TimeOfDay timeOfDay = TimeOfDay.now();
+  DateTime selectedDate = DateTime.now();
+  String formattedTime = DateFormat("hh:mm a").format(DateTime.now());
 
   final Ref ref;
   int selectedIndex = 0;
@@ -46,7 +50,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
           avAudioSessionCategory: AVAudioSessionCategory.playback,
           avAudioSessionMode: AVAudioSessionMode.defaultMode,
           avAudioSessionCategoryOptions:
-              AVAudioSessionCategoryOptions.duckOthers,
+          AVAudioSessionCategoryOptions.duckOthers,
           androidAudioAttributes: AndroidAudioAttributes(
             contentType: AndroidAudioContentType.sonification,
             usage: AndroidAudioUsage.alarm,
@@ -85,11 +89,11 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       selectedDayList.add(item);
     } else {
       bool checkValue = selectedDayList.any(
-        (element) => element.keys.first == item.keys.first,
+            (element) => element.keys.first == item.keys.first,
       );
       if (checkValue) {
         selectedDayList.removeWhere(
-          (element) => element.keys.first == item.keys.first,
+              (element) => element.keys.first == item.keys.first,
         );
       } else {
         selectedDayList.add(item);
@@ -105,7 +109,8 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
   String? days() {
     if (state.selectedDays!.isEmpty) {
-      return "Select Day";
+      // যদি কোন days select না করা হয়, তাহলে আজকের date return করবে
+      return DateFormat('EEE, MMM d').format(DateTime.now());
     } else if (state.selectedDays!.length == 7) {
       return "everyday";
     } else {
@@ -154,10 +159,17 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   void saveAlarm(String text) async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
 
+    List<Map<String, dynamic>> finalSelectedDays = state.selectedDays ?? [];
+
+    if (finalSelectedDays.isEmpty) {
+      int today = DateTime.now().weekday;
+      finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
+    }
+
     AlarmModel alarmModel = AlarmModel(
       id: DateTime.now().millisecondsSinceEpoch % 10000,
       dateTime: state.selectedTime ?? DateTime.now(),
-      selectedDays: state.selectedDays ??[],
+      selectedDays: finalSelectedDays,
       title: teController.text.trim(),
       isEnable: true,
       isVibrate: state.isVibrate ?? true,
@@ -178,6 +190,50 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     resetData();
   }
+
+
+  void updateAlarm() async {
+    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final alarms = alarmPageNotifier.state.alarms ?? [];
+
+    final index = alarms.indexWhere(
+          (alarm) => alarm.id == state.editingAlarmId,
+    );
+
+    if (index != -1) {
+      List<Map<String, dynamic>> finalSelectedDays = state.selectedDays ?? [];
+
+      if (finalSelectedDays.isEmpty) {
+        int today = DateTime.now().weekday;
+        finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
+      }
+
+      AlarmModel updatedAlarm = AlarmModel(
+        id: state.editingAlarmId,
+        dateTime: state.selectedTime ?? DateTime.now(),
+        selectedDays: finalSelectedDays,
+        title: teController.text.trim(),
+        isEnable: state.isEnable ?? true,
+        isVibrate: state.isVibrate ?? true,
+      );
+
+      final updatedList = List<AlarmModel>.from(alarms);
+      updatedList[index] = updatedAlarm;
+
+      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
+        alarms: updatedList,
+      );
+
+      await AuthUtility().saveAlarm(updatedList);
+
+      if (updatedAlarm.isEnable == true) {
+        await scheduleAlarm(updatedAlarm);
+      }
+    }
+
+    resetData();
+  }
+
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
     state = state.copyWith(
@@ -206,40 +262,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
   }
 
-  void updateAlarm() async {
-    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-    final alarms = alarmPageNotifier.state.alarms ?? [];
-
-    final index = alarms.indexWhere(
-      (alarm) => alarm.id == state.editingAlarmId,
-    );
-
-    if (index != -1) {
-      AlarmModel updatedAlarm = AlarmModel(
-        id: state.editingAlarmId,
-        dateTime: state.selectedTime ?? DateTime.now(),
-        selectedDays: state.selectedDays ?? [],
-        title: teController.text.trim(),
-        isEnable: state.isEnable ?? true,
-        isVibrate: state.isVibrate ?? true,
-      );
-
-      final updatedList = List<AlarmModel>.from(alarms);
-      updatedList[index] = updatedAlarm;
-
-      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-        alarms: updatedList,
-      );
-
-      await AuthUtility().saveAlarm(updatedList);
-
-      if (updatedAlarm.isEnable == true) {
-        await scheduleAlarm(updatedAlarm);
-      }
-    }
-
-    resetData();
-  }
 
   void resetData() {
     state = SetAlarmState();
@@ -313,6 +335,22 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
   DateTime getNextAlarmDateTime(AlarmModel alarm) {
     final selectedDays = alarm.selectedDays;
+
+    // যদি কোন days select না করা হয়, তাহলে আজকের date ব্যবহার করবে
+    if (selectedDays.isEmpty) {
+      final now = DateTime.now();
+      final alarmTime = alarm.dateTime;
+
+      DateTime todayAlarm = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
+
+      // যদি আজকের alarm time already passed হয়ে যায়, তাহলে আগামীকালের জন্য set করবে
+      if (now.isAfter(todayAlarm)) {
+        return todayAlarm.add(Duration(days: 1));
+      } else {
+        return todayAlarm;
+      }
+    }
+
     List<String> dayNames = selectedDays
         .map((dayMap) => dayMap.keys.first.toString())
         .toList();
@@ -325,10 +363,10 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   DateTime calculateAlarmDateTime(
-    List<String> selectedDays,
-    int hour,
-    int minute,
-  ) {
+      List<String> selectedDays,
+      int hour,
+      int minute,
+      ) {
     final weekdayMap = {
       'Sat': DateTime.saturday,
       'Sun': DateTime.sunday,
@@ -373,12 +411,12 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   DateTime findNextAlarmDate(
-    List<int> selectedWeekdays,
-    int currentWeekday,
-    int hour,
-    int minute,
-    DateTime now,
-  ) {
+      List<int> selectedWeekdays,
+      int currentWeekday,
+      int hour,
+      int minute,
+      DateTime now,
+      ) {
     selectedWeekdays.sort();
 
     for (int day in selectedWeekdays) {
@@ -449,5 +487,5 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 }
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
-  (ref) => SetAlarmNotifier(ref),
+      (ref) => SetAlarmNotifier(ref),
 );
