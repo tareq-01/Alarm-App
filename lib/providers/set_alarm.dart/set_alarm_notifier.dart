@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import 'package:timezone/data/latest_10y.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
 
@@ -108,12 +107,16 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   String? days(int index) {
-        final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final now = DateTime.now();
+    DateTime todayAlarm = DateTime(now.year, now.month, now.day);
 
-    final alarms = alarmPageNotifier.state.alarms! [index];
-    
+    final alarms = alarmPageNotifier.state.alarms![index];
+
     if (state.selectedDays!.isEmpty) {
-      return DateFormat('EEE, MMM dd').format(DateTime.now());
+      return DateFormat('EEE').format(DateTime.now());
+    } else if (state.selectedDays!.isEmpty&&DateTime.now().isBefore(todayAlarm)) {
+      return "Tomorrow";
     } else if (state.selectedDays!.length == 7) {
       return "everyday";
     } else {
@@ -301,8 +304,11 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   void triggerAlarm(AlarmModel alarm) async {
-    showNotifications(title:teController.text.trim(), body: "Alarm Body", id: alarm.id!);
-
+    showNotifications(
+      title: teController.text.trim(),
+      body: "Alarm Body",
+      id: alarm.id!,
+    );
 
     await playAlarmSound();
     state = state.copyWith(alarmRingId: alarm.id);
@@ -492,68 +498,66 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     return nextAlarmDate;
-
   }
 
-
-   ///Local Notifications
+  ///Local Notifications
 
   Future<void> init() async {
-  // initializeTimeZones();
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+    // initializeTimeZones();
+    final FlutterLocalNotificationsPlugin notificationsPlugin =
+        FlutterLocalNotificationsPlugin();
 
-  const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
-  const DarwinInitializationSettings iosSettings =
-      DarwinInitializationSettings();
+    const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
 
-  const InitializationSettings initializationSettings =
-      InitializationSettings(android: androidSetting, iOS: iosSettings);
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: androidSetting, iOS: iosSettings);
 
-  await notificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      if (response.actionId == 'ACTION_ACCEPT') {
-        await stopAlarm();
-      }
-    },
-  );
-}
+    await notificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        if (response.actionId == 'ACTION_ACCEPT') {
+          await stopAlarm();
+        }
+      },
+    );
+  }
 
-Future<void> showNotifications({
-  required int id,
-  required String title,
-  required String body,
-}) async {
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  Future<void> showNotifications({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    final FlutterLocalNotificationsPlugin notificationsPlugin =
+        FlutterLocalNotificationsPlugin();
 
-  await notificationsPlugin.show(
-    id,
-    title,
-    body,
-    NotificationDetails(
-      android: AndroidNotificationDetails(
-        "instant_notifications_channel_id",
-        "Instant Notifications",
-        channelDescription: "Instant notifications channel",
-        importance: Importance.max,
-        priority: Priority.high,
-        fullScreenIntent: true,
-        playSound: false,
+    await notificationsPlugin.show(
+      id,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          "instant_notifications_channel_id",
+          "Instant Notifications",
+          channelDescription: "Instant notifications channel",
+          importance: Importance.max,
+          priority: Priority.high,
+          fullScreenIntent: true,
+          playSound: false,
 
-        actions: [
-          AndroidNotificationAction(
-            'ACTION_ACCEPT',
-            'Stop',
-            showsUserInterface: true,
-            cancelNotification: true,
-          ),
-        ],
+          actions: [
+            AndroidNotificationAction(
+              'ACTION_ACCEPT',
+              'Stop',
+              showsUserInterface: true,
+              cancelNotification: true,
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
