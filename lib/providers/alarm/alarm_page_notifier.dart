@@ -33,29 +33,7 @@ class AlarmPageNotifier extends StateNotifier<AlarmState> {
     }
   }
 
-  String days(int index) {
-    var item = state.alarms![index];
 
-    if (item.selectedDays.isEmpty) {
-      return DateFormat('EEE').format(DateTime.now());
-    } else if (item.selectedDays.length == 7) {
-      return "Everyday";
-    }
-
-    return item.selectedDays.map((dayMap) => dayMap.keys.first).join(', ');
-  }
-
-
-
-
-
-
-
-
-
-
-
-  
 }
 
 final alarmPageProvider = StateNotifierProvider<AlarmPageNotifier, AlarmState>(

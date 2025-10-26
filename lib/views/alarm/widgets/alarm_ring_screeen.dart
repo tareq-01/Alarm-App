@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AlarmRingScreen extends StatelessWidget {
-  final String alarmTitle;
+  final String? alarmTitle;
   final VoidCallback onStop;
-  final VoidCallback? onSnooze;
+  final VoidCallback onbutton;
 
   const AlarmRingScreen({
     Key? key,
-    required this.alarmTitle,
+     this.alarmTitle,
     required this.onStop,
-    this.onSnooze,
+    required this.onbutton,
   }) : super(key: key);
 
   @override
@@ -25,12 +25,10 @@ class AlarmRingScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-           
-            
             SizedBox(height: 24),
-            
+
             Text(
-              alarmTitle,
+              alarmTitle!,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -38,10 +36,9 @@ class AlarmRingScreen extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
-           
+
             SizedBox(height: 32),
-            
+
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -57,14 +54,10 @@ class AlarmRingScreen extends StatelessWidget {
                 ),
                 child: Text(
                   'STOP',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            
           ],
         ),
       ),
