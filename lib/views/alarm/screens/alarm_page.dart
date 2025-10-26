@@ -108,11 +108,11 @@ class AlarmPage extends ConsumerWidget {
                                         title: item.title,
                                         isEnable: item.isEnable!,
                                         alarmTime: item.dateTime,
-                                        weekDays: alarmPageController.days(
-                                          index,
-                                        ),
-                                        remainingTime: setAlarmNotifier.getRemainingTime(alarmPageState.alarms![index],
-),
+                                        weekDays: setAlarmNotifier.days(index),
+                                        remainingTime: setAlarmNotifier
+                                            .getRemainingTime(
+                                              alarmPageState.alarms![index],
+                                            ),
                                         onActive: (bool value) {
                                           alarmPageController.toggleSwitch(
                                             index,
