@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:alarm_app/main2.dart';
-import 'package:alarm_app/services/app_route.dart';
-import 'package:alarm_app/views/alarm/widgets/alarm_ring_screeen.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
@@ -107,14 +105,16 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return weekdays[index].keys.first;
   }
 
-  String? days() {
+  String? days(int index) {
+final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
+    final alarms = alarmPageNotifier.state.alarms![index];
+
     if (state.selectedDays!.isEmpty) {
-      // যদি কোন days select না করা হয়, তাহলে আজকের date return করবে
       return DateFormat('EEE, MMM d').format(DateTime.now());
     } else if (state.selectedDays!.length == 7) {
       return "everyday";
     } else {
-      return state.selectedDays!.map((dayMap) => dayMap.keys.first).join(', ');
+      return alarms.selectedDays.map ((dayMap) => dayMap.keys.first).join(', ');
     }
   }
 
@@ -336,14 +336,12 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   DateTime getNextAlarmDateTime(AlarmModel alarm) {
     final selectedDays = alarm.selectedDays;
 
-    // যদি কোন days select না করা হয়, তাহলে আজকের date ব্যবহার করবে
     if (selectedDays.isEmpty) {
       final now = DateTime.now();
       final alarmTime = alarm.dateTime;
 
       DateTime todayAlarm = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
 
-      // যদি আজকের alarm time already passed হয়ে যায়, তাহলে আগামীকালের জন্য set করবে
       if (now.isAfter(todayAlarm)) {
         return todayAlarm.add(Duration(days: 1));
       } else {
