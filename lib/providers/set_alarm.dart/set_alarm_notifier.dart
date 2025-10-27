@@ -1,7 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
-import 'dart:isolate';
-import 'dart:ui';
 import 'package:alarm_app/main2.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:audio_session/audio_session.dart';
@@ -17,7 +14,6 @@ import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
 
-// Global notification plugin instance
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -26,63 +22,61 @@ AlarmAudioPlayer? _backgroundAudioPlayer;
 @pragma('vm:entry-point')
 void alarmCallback(int alarmId) async {
   
-  if (_backgroundAudioPlayer == null) {
-    _backgroundAudioPlayer = AlarmAudioPlayer();
-    try {
-      await _backgroundAudioPlayer!.initializeAndPlay('assets/sounds/alarm1.mp3');
-    } catch (e) {
-    }
-  }
 
-  const AndroidInitializationSettings androidSettings = 
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initSettings = 
-      InitializationSettings(android: androidSettings);
-  
-  await flutterLocalNotificationsPlugin.initialize(initSettings);
 
-  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'alarm_channel',
-    'Alarm Channel',
-    channelDescription: 'Channel for alarm notifications',
-    importance: Importance.max,
-    priority: Priority.high,
-    fullScreenIntent: true,
-    playSound: true,
-    sound: RawResourceAndroidNotificationSound('alarm1'),
-    enableVibration: true,
-    ongoing: true,
-    autoCancel: false,
-    actions: [
-      AndroidNotificationAction(
-        'ACTION_STOP',
-        'Stop Alarm',
-        showsUserInterface: true,
-        cancelNotification: true,
+    const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: androidSetting, iOS: iosSettings);
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        if (response.actionId == 'ACTION_ACCEPT') {
+        }
+      },
+    );
+
+
+
+ final FlutterLocalNotificationsPlugin notificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
+    await notificationsPlugin.show(
+      8,
+      "title",
+      "body",
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          "instant_notifications_channel_id",
+          "Instant Notifications",
+          channelDescription: "Instant notifications channel",
+          importance: Importance.max,
+          priority: Priority.high,
+          fullScreenIntent: true,
+          playSound: false,
+          actions: [
+            AndroidNotificationAction(
+              'ACTION_ACCEPT',
+              'Stop',
+              showsUserInterface: true,
+              cancelNotification: true,
+            ),
+          ],
+        ),
       ),
-    ],
-  );
+    );
 
-  const NotificationDetails notificationDetails = NotificationDetails(
-    android: androidDetails,
-  );
 
-  await flutterLocalNotificationsPlugin.show(
-    alarmId,
-    'Alarm',
-    'Time to wake up!',
-    notificationDetails,
-  );
 
-  final SendPort? send = IsolateNameServer.lookupPortByName('alarm_port');
-  send?.send('alarm_triggered_$alarmId');
 }
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
     _initializeAudioPlayer();
     init();
-    _setupIsolateReceiver();
   }
 
   TimeOfDay timeOfDay = TimeOfDay.now();
@@ -93,9 +87,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   final TextEditingController teController = TextEditingController();
 
   final AlarmAudioPlayer _audioPlayer = AlarmAudioPlayer();
-  static const platform = MethodChannel('com.example.alarm_app/audio');
-
-  ReceivePort? _receivePort;
+  static const platform = MethodChannel('assets/sounds/alarm1.mp3');
 
   List<Map<String, dynamic>> weekdays = [
     {'Sat': DateTime.saturday},
@@ -106,35 +98,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     {'Thu': DateTime.thursday},
     {'Fri': DateTime.friday},
   ];
-
-  void _setupIsolateReceiver() {
-    _receivePort = ReceivePort();
-    IsolateNameServer.removePortNameMapping('alarm_port');
-    IsolateNameServer.registerPortWithName(
-      _receivePort!.sendPort,
-      'alarm_port',
-    );
-
-    _receivePort!.listen((message) {
-      print('Received message: $message');
-      if (message is String && message.startsWith('alarm_triggered_')) {
-        final alarmId = int.tryParse(message.split('_').last);
-        if (alarmId != null) {
-          playAlarmSound();
-          state = state.copyWith(alarmRingId: alarmId);
-        }
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _receivePort?.close();
-    IsolateNameServer.removePortNameMapping('alarm_port');
-    _audioPlayer.dispose();
-    teController.dispose();
-    super.dispose();
-  }
 
   Future<void> _initializeAudioPlayer() async {
     try {
@@ -155,7 +118,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         ),
       );
     } catch (e) {
-      log('Error initializing audio player: $e');
     }
   }
 
@@ -163,7 +125,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     try {
       await platform.invokeMethod('setAlarmStream');
     } on PlatformException catch (e) {
-      log('Error setting alarm audio: $e');
     }
   }
 
@@ -411,21 +372,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       
       final nextAlarmTime = getNextAlarmDateTime(alarm);
       final now = DateTime.now();
-     
+      
+      
 
-    final currentTime = state.selectedTime ?? DateTime.now();
-    DateTime alarmTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      currentTime.hour,
-      currentTime.minute,
-    );
+      if (nextAlarmTime.isBefore(now)) {
+        return;
+      }
 
-    if (alarmTime.isBefore(now)) {
-      alarmTime = alarmTime.add(Duration(days: 1));
-    }
-       await AndroidAlarmManager.oneShotAt(
+      await AndroidAlarmManager.oneShotAt(
         nextAlarmTime,
         alarm.id!,
         alarmCallback,
@@ -435,7 +389,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
         allowWhileIdle: true,
       );
 
-    
     } catch (e) {
     }
   }
@@ -455,29 +408,28 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     await _audioPlayer.stop();
     if (_backgroundAudioPlayer != null) {
       await _backgroundAudioPlayer!.stop();
+      _backgroundAudioPlayer = null;
     }
-    await flutterLocalNotificationsPlugin.cancelAll();
   }
 
   DateTime getNextAlarmDateTime(AlarmModel alarm) {
+    final now = DateTime.now();
+    final alarmTime = alarm.dateTime;
     final selectedDays = alarm.selectedDays;
 
+    DateTime todayAlarm = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      alarmTime.hour,
+      alarmTime.minute,
+    );
+
     if (selectedDays.isEmpty) {
-      final now = DateTime.now();
-      final alarmTime = alarm.dateTime;
-
-      DateTime todayAlarm = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        alarmTime.hour,
-        alarmTime.minute,
-      );
-
-      if (now.isAfter(todayAlarm)) {
-        return todayAlarm.add(Duration(days: 1));
-      } else {
+      if (now.isBefore(todayAlarm)) {
         return todayAlarm;
+      } else {
+        return todayAlarm.add(Duration(days: 1));
       }
     }
 
@@ -487,8 +439,8 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     return calculateAlarmDateTime(
       dayNames,
-      alarm.dateTime.hour,
-      alarm.dateTime.minute,
+      alarmTime.hour,
+      alarmTime.minute,
     );
   }
 
@@ -517,27 +469,17 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     DateTime todayAlarm = DateTime(now.year, now.month, now.day, hour, minute);
 
-    if (isCurrentDaySelected) {
-      if (now.isBefore(todayAlarm)) {
-        return todayAlarm;
-      } else {
-        return findNextAlarmDate(
-          selectedWeekdays,
-          currentWeekday,
-          hour,
-          minute,
-          now,
-        );
-      }
-    } else {
-      return findNextAlarmDate(
-        selectedWeekdays,
-        currentWeekday,
-        hour,
-        minute,
-        now,
-      );
+    if (isCurrentDaySelected && now.isBefore(todayAlarm)) {
+      return todayAlarm;
     }
+
+    return findNextAlarmDate(
+      selectedWeekdays,
+      currentWeekday,
+      hour,
+      minute,
+      now,
+    );
   }
 
   DateTime findNextAlarmDate(
@@ -615,8 +557,10 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return nextAlarmDate;
   }
 
-  /// Local Notifications
   Future<void> init() async {
+    final FlutterLocalNotificationsPlugin notificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
     const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings();
@@ -624,26 +568,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     const InitializationSettings initializationSettings =
         InitializationSettings(android: androidSetting, iOS: iosSettings);
 
-    await flutterLocalNotificationsPlugin.initialize(
+    await notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.actionId == 'ACTION_STOP') {
+        if (response.actionId == 'ACTION_ACCEPT') {
           await stopAlarm();
         }
       },
     );
-
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
-
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestExactAlarmsPermission();
   }
 
   Future<void> showNotifications({
@@ -651,27 +583,26 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     required String title,
     required String body,
   }) async {
-    await flutterLocalNotificationsPlugin.show(
+    final FlutterLocalNotificationsPlugin notificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
+    await notificationsPlugin.show(
       id,
       title,
       body,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          "alarm_channel_id",
-          "Alarm Notifications",
-          channelDescription: "Channel for alarm notifications",
+          "instant_notifications_channel_id",
+          "Instant Notifications",
+          channelDescription: "Instant notifications channel",
           importance: Importance.max,
           priority: Priority.high,
           fullScreenIntent: true,
-          playSound: true,
-          sound: RawResourceAndroidNotificationSound('alarm1'),
-          enableVibration: true,
-          ongoing: true,
-          autoCancel: false,
+          playSound: false,
           actions: [
             AndroidNotificationAction(
-              'ACTION_STOP',
-              'Stop Alarm',
+              'ACTION_ACCEPT',
+              'Stop',
               showsUserInterface: true,
               cancelNotification: true,
             ),
