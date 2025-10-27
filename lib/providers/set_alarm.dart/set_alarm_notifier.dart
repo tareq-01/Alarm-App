@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:alarm_app/main2.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:alarm_app/services/app_route.dart';
+import 'package:alarm_app/views/alarm/widgets/alarm_ring_screeen.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
@@ -9,63 +10,18 @@ import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
 import 'package:alarm_app/services/constants/auth.dart';
 import 'package:alarm_app/views/alarm/widgets/set_alarm_bottom_sheet_content.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
 
-@pragma('vm:entry-point')
-void alarmCallback(int alarmId) async {
-  log('Alarm triggered with ID: $alarmId');
-
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
-
-  const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
-  const InitializationSettings initializationSettings =
-  InitializationSettings(android: androidSetting);
-
-  await notificationsPlugin.initialize(initializationSettings);
-
-  await notificationsPlugin.show(
-    alarmId,
-    'Alarm',
-    'Your alarm is ringing!',
-    NotificationDetails(
-      android: AndroidNotificationDetails(
-        "alarm_channel_id",
-        "Alarm Notifications",
-        channelDescription: "Alarm notifications channel",
-        importance: Importance.max,
-        priority: Priority.high,
-        fullScreenIntent: true,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('alarm1'),
-        actions: [
-          AndroidNotificationAction(
-            'ACTION_STOP',
-            'Stop',
-            showsUserInterface: true,
-            cancelNotification: true,
-          ),
-        ],
-      ),
-    ),
-  );
-
-
-}
-
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
     _initializeAudioPlayer();
-    _initializeAlarmManager();
-    init();
   }
-
   TimeOfDay timeOfDay = TimeOfDay.now();
   DateTime selectedDate = DateTime.now();
+  String formattedTime = DateFormat("hh:mm a").format(DateTime.now());
 
   final Ref ref;
   int selectedIndex = 0;
@@ -83,15 +39,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     {'Thu': DateTime.thursday},
     {'Fri': DateTime.friday},
   ];
-
-  Future<void> _initializeAlarmManager() async {
-    try {
-      await AndroidAlarmManager.initialize();
-      log('Android Alarm Manager initialized successfully');
-    } catch (e) {
-      log('Error initializing alarm manager: $e');
-    }
-  }
 
   Future<void> _initializeAudioPlayer() async {
     try {
@@ -119,15 +66,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   Future<void> setAlarmAudio() async {
     try {
       await platform.invokeMethod('setAlarmStream');
-    } on PlatformException catch (e) {
-      log('Platform exception: $e');
-    }
+    } on PlatformException catch (e) {}
   }
 
   Future<void> playAlarmSound() async {
     await _audioPlayer.stop();
     await setAlarmAudio();
     await _audioPlayer.initializeAndPlay('assets/sounds/alarm1.mp3');
+    // Navigator.pop(context);
   }
 
   void toggleVibrate() {
@@ -161,21 +107,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return weekdays[index].keys.first;
   }
 
-  String? days(int index) {
-    final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
-    final now = DateTime.now();
-    DateTime todayAlarm = DateTime(now.year, now.month, now.day);
-
-    final alarms = alarmPageNotifier.state.alarms![index];
-
+  String? days() {
     if (state.selectedDays!.isEmpty) {
-      return DateFormat('EEE').format(DateTime.now());
-    } else if (state.selectedDays!.isEmpty && DateTime.now().isBefore(todayAlarm)) {
-      return "Tomorrow";
+      // যদি কোন days select না করা হয়, তাহলে আজকের date return করবে
+      return DateFormat('EEE, MMM d').format(DateTime.now());
     } else if (state.selectedDays!.length == 7) {
       return "everyday";
     } else {
-      return alarms.selectedDays.map((dayMap) => dayMap.keys.first).join(', ');
+      return state.selectedDays!.map((dayMap) => dayMap.keys.first).join(', ');
     }
   }
 
@@ -207,10 +146,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     final alarms = alarmPageNotifier.state.alarms ?? [];
 
     if (index < alarms.length) {
-      final alarm = alarms[index];
-
-      await AndroidAlarmManager.cancel(alarm.id!);
-
       final updatedAlarms = List<AlarmModel>.from(alarms);
       updatedAlarms.removeAt(index);
 
@@ -228,9 +163,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     if (finalSelectedDays.isEmpty) {
       int today = DateTime.now().weekday;
-      finalSelectedDays = [
-        weekdays.firstWhere((day) => day.values.first == today),
-      ];
+      finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
     }
 
     AlarmModel alarmModel = AlarmModel(
@@ -253,10 +186,11 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     await AuthUtility().saveAlarm(updatedList);
-    await setAlarm(alarmModel);
+    await scheduleAlarm(alarmModel);
 
     resetData();
   }
+
 
   void updateAlarm() async {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
@@ -271,9 +205,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
       if (finalSelectedDays.isEmpty) {
         int today = DateTime.now().weekday;
-        finalSelectedDays = [
-          weekdays.firstWhere((day) => day.values.first == today),
-        ];
+        finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
       }
 
       AlarmModel updatedAlarm = AlarmModel(
@@ -294,15 +226,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
       await AuthUtility().saveAlarm(updatedList);
 
-      // Cancel old alarm and schedule new one
-      await AndroidAlarmManager.cancel(updatedAlarm.id!);
       if (updatedAlarm.isEnable == true) {
-        await setAlarm(updatedAlarm);
+        await scheduleAlarm(updatedAlarm);
       }
     }
 
     resetData();
   }
+
 
   void editAlarm(BuildContext context, AlarmModel alarm) async {
     state = state.copyWith(
@@ -331,6 +262,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
   }
 
+
   void resetData() {
     state = SetAlarmState();
     teController.clear();
@@ -353,42 +285,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
   }
 
-  Future<void> setAlarm() async {
-    final now = DateTime.now();
-    DateTime alarmTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      selectedTime.hour,
-      selectedTime.minute,
-    );
-
-    if (alarmTime.isBefore(now)) {
-      alarmTime = alarmTime.add(Duration(days: 1));
-    }
-
-    // Calculate duration until alarm
-    final duration = alarmTime.difference(now);
-
-    // Set the alarm
-    final int alarmId = 0; // Unique ID for this alarm
-
-    await AndroidAlarmManager.oneShot(
-      duration,
-      alarmId,
-      alarmCallback,
-      exact: true, // For exact timing
-      wakeup: true, // Wake up the device
-      rescheduleOnReboot: true, // Reschedule after reboot
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Alarm set for ${alarmTime.toString()}'),
-      ),
-    );
-  }
-
   Future<void> scheduleAlarm(AlarmModel alarm) async {
     final nextAlarmTime = getNextAlarmDateTime(alarm);
     final duration = nextAlarmTime.difference(DateTime.now());
@@ -399,19 +295,40 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       });
     }
   }
+
   void triggerAlarm(AlarmModel alarm) async {
-    showNotifications(
-      title: alarm.title!,
-      body: "Alarm is ringing",
-      id: alarm.id!,
-    );
+   // showAlarmRingDialog(alarm);
 
     await playAlarmSound();
     state = state.copyWith(alarmRingId: alarm.id);
-    if (alarm.selectedDays.isNotEmpty) {
-      await setAlarm(alarm);
-    }
   }
+
+  // void showAlarmRingDialog(AlarmModel alarm) {
+  //   final alarm = router.routerDelegate.navigatorKey.currentContext;
+  //
+  //   if (alarm != null) {
+  //     showModalBottomSheet(
+  //       isScrollControlled: true,
+  //       enableDrag: true,
+  //       context: alarm,
+  //       builder: (context) {
+  //         return Padding(
+  //           padding: EdgeInsets.only(
+  //             bottom: MediaQuery.of(context).viewInsets.top,
+  //           ),
+  //           child: AlarmRingScreen(
+  //             alarmTitle: 'Title',
+  //             onStop: () async {
+  //               await stopAlarm();
+  //               Navigator.pop(context);
+  //             },
+  //           ),
+  //         );
+  //       },
+  //     );
+  //   }
+  // }
+
   Future<void> stopAlarm() async {
     await _audioPlayer.stop();
   }
@@ -419,18 +336,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   DateTime getNextAlarmDateTime(AlarmModel alarm) {
     final selectedDays = alarm.selectedDays;
 
+    // যদি কোন days select না করা হয়, তাহলে আজকের date ব্যবহার করবে
     if (selectedDays.isEmpty) {
       final now = DateTime.now();
       final alarmTime = alarm.dateTime;
 
-      DateTime todayAlarm = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        alarmTime.hour,
-        alarmTime.minute,
-      );
+      DateTime todayAlarm = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
 
+      // যদি আজকের alarm time already passed হয়ে যায়, তাহলে আগামীকালের জন্য set করবে
       if (now.isAfter(todayAlarm)) {
         return todayAlarm.add(Duration(days: 1));
       } else {
@@ -570,64 +483,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     );
 
     return nextAlarmDate;
-  }
-
-  ///Local Notifications
-
-  Future<void> init() async {
-    final FlutterLocalNotificationsPlugin notificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-    const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
-    const DarwinInitializationSettings iosSettings =
-    DarwinInitializationSettings();
-
-    const InitializationSettings initializationSettings =
-    InitializationSettings(android: androidSetting, iOS: iosSettings);
-
-    await notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.actionId == 'ACTION_STOP') {
-          await stopAlarm();
-        }
-      },
-    );
-  }
-
-  Future<void> showNotifications({
-    required int id,
-    required String title,
-    required String body,
-  }) async {
-    final FlutterLocalNotificationsPlugin notificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-    await notificationsPlugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          "alarm_channel_id",
-          "Alarm Notifications",
-          channelDescription: "Alarm notifications channel",
-          importance: Importance.max,
-          priority: Priority.high,
-          fullScreenIntent: true,
-          playSound: true,
-          sound: RawResourceAndroidNotificationSound('alarm1'),
-          actions: [
-            AndroidNotificationAction(
-              'ACTION_STOP',
-              'Stop',
-              showsUserInterface: true,
-              cancelNotification: true,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
