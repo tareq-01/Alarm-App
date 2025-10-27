@@ -8,7 +8,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.alarm_app/audio"
+    private val CHANNEL = "com.example.alarm_app"
     private var audioManager: AudioManager? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
