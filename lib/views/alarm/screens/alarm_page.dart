@@ -1,13 +1,11 @@
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
-import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart' as setAlarmNotifier;
 import 'package:alarm_app/views/alarm/widgets/alarm_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
-import '../../../providers/set_alarm.dart/set_alarm_notifier.dart';
 
 // ignore: must_be_immutable
 class AlarmPage extends ConsumerWidget {

@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 class AlarmAudioPlayer {
-  final AudioPlayer _player = AudioPlayer();
+  AudioPlayer _player = AudioPlayer();
   static const platform = MethodChannel('com.example.alarm_app');
-
   Future<void> initializeAndPlay(String audioPath) async {
     try {
-     // await _setAlarmAudioStream();
+      // await _setAlarmAudioStream();
+     
 
       final session = await AudioSession.instance;
       await session.configure(
@@ -35,20 +35,16 @@ class AlarmAudioPlayer {
     }
   }
 
-  Future<void> _setAlarmAudioStream() async {
-    try {
-      await platform.invokeMethod('setAlarmStream');
-    } on PlatformException catch (e) {}
-  }
-
   Future<void> stop() async {
-    await _player.stop();
-    //await _resetAudioStream();
+ await _player.stop();
+        await _player.dispose();
+            log("Stopping alarm");
+
   }
 
-  Future<void> _resetAudioStream() async {
-    try {
-      await platform.invokeMethod('resetAudioStream');
-    } on PlatformException catch (e) {}
-  }
+  // Future<void> _resetAudioStream() async {
+  //   try {
+  //     await platform.invokeMethod('resetAudioStream');
+  //   } on PlatformException catch (e) {}
+  // }
 }

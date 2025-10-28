@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:developer';
+import 'dart:isolate';
 import 'dart:ui';
-import 'package:alarm_app/main.dart';
 import 'package:alarm_app/providers/set_alarm.dart/audio_manager.dart';
+import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:audio_session/audio_session.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
 import 'package:alarm_app/services/constants/alarm_model/alarm_model.dart';
@@ -14,14 +13,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import 'package:just_audio/just_audio.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+AlarmAudioPlayer alarmAudioPlayer = AlarmAudioPlayer();
+const String _stopPortName = 'alarm_stop_port';
 
 @pragma('vm:entry-point')
 void alarmCallback(int alarmId) async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
+  final port = ReceivePort();
+  IsolateNameServer.removePortNameMapping(_stopPortName);
+  IsolateNameServer.registerPortWithName(port.sendPort, _stopPortName);
+  port.listen((message) {
+    if (message == 'STOP_ALARM') {
+      alarmAudioPlayer.stop();
+      IsolateNameServer.removePortNameMapping(_stopPortName);
+    }
+  });
+
   const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
   const DarwinInitializationSettings iosSettings =
       DarwinInitializationSettings();
@@ -34,10 +46,14 @@ void alarmCallback(int alarmId) async {
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      if (response.actionId == 'ACTION_ACCEPT') {
-
-                  AlarmAudioPlayer().stop();
-
+      // if (response.actionId == 'ACTION_ACCEPT') {
+      //   await alarmAudioPlayer.stop();
+      //   IsolateNameServer.removePortNameMapping(_stopPortName);
+      // }
+      if (response.payload == 'alarm_screen') {
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
+        );
       }
     },
   );
@@ -46,9 +62,9 @@ void alarmCallback(int alarmId) async {
       FlutterLocalNotificationsPlugin();
 
   await notificationsPlugin.show(
-    8,
-    "title",
-    "body",
+    alarmId,
+    "Alarm",
+    "Time to wake up!",
     NotificationDetails(
       android: AndroidNotificationDetails(
         "instant_notifications_channel_id",
@@ -68,21 +84,24 @@ void alarmCallback(int alarmId) async {
         ],
       ),
     ),
+    payload: 'alarm_screen', 
   );
-  await AlarmAudioPlayer().initializeAndPlay("assets/sounds/alarm1.mp3");
+
+  await alarmAudioPlayer.initializeAndPlay("assets/sounds/alarm2.mp3");
+  
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
+  );
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-final AudioPlayer _player = AudioPlayer();
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
-    // initializeAudioPlayer();
-    //AlarmAudioPlayer();
     init();
+    AndroidAlarmManager.initialize();
   }
-
   TimeOfDay timeOfDay = TimeOfDay.now();
   DateTime selectedDate = DateTime.now();
 
@@ -342,7 +361,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     if (alarmTime.isBefore(now)) {
       alarmTime = alarmTime.add(Duration(days: 1));
     }
-    //DateTime duration = alarmTime.difference(now);
     final selectedDays = alarm.selectedDays;
 
     List<String> dayNames = selectedDays
@@ -362,21 +380,6 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       allowWhileIdle: true,
       wakeup: true,
     );
-  }
-
-  // void triggerAlarm(AlarmModel alarm) async {
-  //   showNotifications(
-  //     title: alarm.title!,
-  //     body: "Time to wake up!",
-  //     id: alarm.id!,
-  //   );
-
-  //   await playAlarmSound();
-  //   state = state.copyWith(alarmRingId: alarm.id);
-  // }
-
-  Future<void> stopAlarm() async {
-    await AlarmAudioPlayer().stop();
   }
 
   DateTime getNextAlarmDateTime(AlarmModel alarm) {
@@ -520,6 +523,16 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     return nextAlarmDate;
   }
 
+  Future<void> stopAlarm() async {
+    final sendPort = IsolateNameServer.lookupPortByName(_stopPortName);
+    if (sendPort != null) {
+      sendPort.send('STOP_ALARM');
+      await alarmAudioPlayer.stop();
+
+      await Future.delayed(Duration(milliseconds: 100));
+    }
+  }
+
   Future<void> init() async {
     final FlutterLocalNotificationsPlugin notificationsPlugin =
         FlutterLocalNotificationsPlugin();
@@ -534,8 +547,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     await notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.actionId == 'ACTION_ACCEPT') {
-          AlarmAudioPlayer().stop();
+        // if (response.actionId == 'ACTION_ACCEPT') {
+        //   log("Stop Button Pressed");
+        //   await stopAlarm();
+        // }
+        if (response.payload == 'alarm_screen') {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) =>  AlarmRingingScreen()),
+          );
         }
       },
     );
@@ -572,6 +591,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
           ],
         ),
       ),
+      payload: 'alarm_screen', 
     );
   }
 }
