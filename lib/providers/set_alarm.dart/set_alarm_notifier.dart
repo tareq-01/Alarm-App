@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:alarm_app/providers/set_alarm.dart/audio_manager.dart';
@@ -15,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 AlarmAudioPlayer alarmAudioPlayer = AlarmAudioPlayer();
@@ -24,6 +26,7 @@ const String _stopPortName = 'alarm_stop_port';
 void alarmCallback(int alarmId) async {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
+
   final port = ReceivePort();
   IsolateNameServer.removePortNameMapping(_stopPortName);
   IsolateNameServer.registerPortWithName(port.sendPort, _stopPortName);
@@ -32,6 +35,10 @@ void alarmCallback(int alarmId) async {
       alarmAudioPlayer.stop();
       IsolateNameServer.removePortNameMapping(_stopPortName);
     }
+
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
+    );
   });
 
   const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
@@ -46,12 +53,12 @@ void alarmCallback(int alarmId) async {
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      // if (response.actionId == 'ACTION_ACCEPT') {
-      //   await alarmAudioPlayer.stop();
-      //   IsolateNameServer.removePortNameMapping(_stopPortName);
-      // }
+      if (response.actionId == 'ACTION_ACCEPT') {
+        await alarmAudioPlayer.stop();
+        IsolateNameServer.removePortNameMapping(_stopPortName);
+      }
       if (response.payload == 'alarm_screen') {
-        navigatorKey.currentState!.push(
+        navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
         );
       }
@@ -84,11 +91,10 @@ void alarmCallback(int alarmId) async {
         ],
       ),
     ),
-    payload: 'alarm_screen', 
+    payload: 'alarm_screen',
   );
 
   await alarmAudioPlayer.initializeAndPlay("assets/sounds/alarm2.mp3");
-  
   navigatorKey.currentState?.push(
     MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
   );
@@ -547,13 +553,15 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     await notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        // if (response.actionId == 'ACTION_ACCEPT') {
-        //   log("Stop Button Pressed");
-        //   await stopAlarm();
-        // }
+        if (response.actionId == 'ACTION_ACCEPT') {
+          log("Stop Button Pressed");
+          await stopAlarm();
+        }
         if (response.payload == 'alarm_screen') {
+          log("Alarm Ring Screen");
+
           navigatorKey.currentState?.push(
-            MaterialPageRoute(builder: (_) =>  AlarmRingingScreen()),
+            MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
           );
         }
       },
@@ -591,7 +599,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
           ],
         ),
       ),
-      payload: 'alarm_screen', 
+      payload: 'alarm_screen',
     );
   }
 }
