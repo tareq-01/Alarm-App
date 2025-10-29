@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
+import 'package:alarm_app/main.dart';
 import 'package:alarm_app/providers/set_alarm.dart/audio_manager.dart';
 import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
@@ -17,10 +18,9 @@ import 'package:flutter/services.dart';
 import '../../views/alarm/widgets/edit_alarm.dart';
 import 'package:intl/intl.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 AlarmAudioPlayer alarmAudioPlayer = AlarmAudioPlayer();
 const String _stopPortName = 'alarm_stop_port';
+const platform = MethodChannel('com.example.alarm_app');
 
 @pragma('vm:entry-point')
 void alarmCallback(int alarmId) async {
@@ -30,45 +30,17 @@ void alarmCallback(int alarmId) async {
   final port = ReceivePort();
   IsolateNameServer.removePortNameMapping(_stopPortName);
   IsolateNameServer.registerPortWithName(port.sendPort, _stopPortName);
+
   port.listen((message) {
     if (message == 'STOP_ALARM') {
       alarmAudioPlayer.stop();
       IsolateNameServer.removePortNameMapping(_stopPortName);
     }
-
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
-    );
   });
 
-  const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
-  const DarwinInitializationSettings iosSettings =
-      DarwinInitializationSettings();
+  notificationsInitialize();
 
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: androidSetting,
-    iOS: iosSettings,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) async {
-      if (response.actionId == 'ACTION_ACCEPT') {
-        await alarmAudioPlayer.stop();
-        IsolateNameServer.removePortNameMapping(_stopPortName);
-      }
-      if (response.payload == 'alarm_screen') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
-        );
-      }
-    },
-  );
-
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
-  await notificationsPlugin.show(
+  await flutterLocalNotificationsPlugin.show(
     alarmId,
     "Alarm",
     "Time to wake up!",
@@ -81,31 +53,21 @@ void alarmCallback(int alarmId) async {
         priority: Priority.high,
         fullScreenIntent: true,
         playSound: false,
-        actions: [
-          AndroidNotificationAction(
-            'ACTION_ACCEPT',
-            'Stop',
-            showsUserInterface: true,
-            cancelNotification: true,
-          ),
-        ],
+
+        actions: [AndroidNotificationAction('ACTION_ACCEPT', 'Stop', showsUserInterface: true, cancelNotification: true)],
       ),
     ),
     payload: 'alarm_screen',
   );
 
+  // Play alarm sound
   await alarmAudioPlayer.initializeAndPlay("assets/sounds/alarm2.mp3");
-  navigatorKey.currentState?.push(
-    MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
-  );
 }
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   SetAlarmNotifier(this.ref) : super(SetAlarmState()) {
-    init();
     AndroidAlarmManager.initialize();
   }
   TimeOfDay timeOfDay = TimeOfDay.now();
@@ -132,20 +94,14 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
   }
 
   void selectedDay(Map<String, dynamic> item) {
-    List<Map<String, dynamic>> selectedDayList = List.from(
-      state.selectedDays ?? [],
-    );
+    List<Map<String, dynamic>> selectedDayList = List.from(state.selectedDays ?? []);
 
     if (selectedDayList.isEmpty) {
       selectedDayList.add(item);
     } else {
-      bool checkValue = selectedDayList.any(
-        (element) => element.keys.first == item.keys.first,
-      );
+      bool checkValue = selectedDayList.any((element) => element.keys.first == item.keys.first);
       if (checkValue) {
-        selectedDayList.removeWhere(
-          (element) => element.keys.first == item.keys.first,
-        );
+        selectedDayList.removeWhere((element) => element.keys.first == item.keys.first);
       } else {
         selectedDayList.add(item);
       }
@@ -175,21 +131,10 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(
-        hour: currentTime.hour,
-        minute: currentTime.minute,
-      ),
+      initialTime: TimeOfDay(hour: currentTime.hour, minute: currentTime.minute),
     );
     if (picked != null) {
-      state = state.copyWith(
-        selectedTime: DateTime(
-          DateTime.now().year,
-          DateTime.now().month,
-          DateTime.now().day,
-          picked.hour,
-          picked.minute,
-        ),
-      );
+      state = state.copyWith(selectedTime: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, picked.hour, picked.minute));
     }
   }
 
@@ -206,9 +151,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       final updatedAlarms = List<AlarmModel>.from(alarms);
       updatedAlarms.removeAt(index);
 
-      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-        alarms: updatedAlarms,
-      );
+      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(alarms: updatedAlarms);
       await AuthUtility().saveAlarm(updatedAlarms);
     }
   }
@@ -220,31 +163,23 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     if (finalSelectedDays.isEmpty) {
       int today = DateTime.now().weekday;
-      finalSelectedDays = [
-        weekdays.firstWhere((day) => day.values.first == today),
-      ];
+      finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
     }
 
     AlarmModel alarmModel = AlarmModel(
       id: DateTime.now().millisecondsSinceEpoch % 100000,
       dateTime: state.selectedTime ?? DateTime.now(),
       selectedDays: finalSelectedDays,
-      title: teController.text.trim().isEmpty
-          ? 'Alarm'
-          : teController.text.trim(),
+      title: teController.text.trim().isEmpty ? 'Alarm' : teController.text.trim(),
       isEnable: true,
       isVibrate: state.isVibrate ?? true,
     );
 
     teController.clear();
-    final updatedList = List<AlarmModel>.from(
-      alarmPageNotifier.state.alarms ?? [],
-    );
+    final updatedList = List<AlarmModel>.from(alarmPageNotifier.state.alarms ?? []);
 
     updatedList.add(alarmModel);
-    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-      alarms: updatedList,
-    );
+    alarmPageNotifier.state = alarmPageNotifier.state.copyWith(alarms: updatedList);
 
     await AuthUtility().saveAlarm(updatedList);
     await setAlarm(alarmModel);
@@ -256,27 +191,21 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     final alarmPageNotifier = ref.read(alarmPageProvider.notifier);
     final alarms = alarmPageNotifier.state.alarms ?? [];
 
-    final index = alarms.indexWhere(
-      (alarm) => alarm.id == state.editingAlarmId,
-    );
+    final index = alarms.indexWhere((alarm) => alarm.id == state.editingAlarmId);
 
     if (index != -1) {
       List<Map<String, dynamic>> finalSelectedDays = state.selectedDays ?? [];
 
       if (finalSelectedDays.isEmpty) {
         int today = DateTime.now().weekday;
-        finalSelectedDays = [
-          weekdays.firstWhere((day) => day.values.first == today),
-        ];
+        finalSelectedDays = [weekdays.firstWhere((day) => day.values.first == today)];
       }
 
       AlarmModel updatedAlarm = AlarmModel(
         id: state.editingAlarmId,
         dateTime: state.selectedTime ?? DateTime.now(),
         selectedDays: finalSelectedDays,
-        title: teController.text.trim().isEmpty
-            ? 'Alarm'
-            : teController.text.trim(),
+        title: teController.text.trim().isEmpty ? 'Alarm' : teController.text.trim(),
         isEnable: state.isEnable ?? true,
         isVibrate: state.isVibrate ?? true,
       );
@@ -287,9 +216,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       final updatedList = List<AlarmModel>.from(alarms);
       updatedList[index] = updatedAlarm;
 
-      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(
-        alarms: updatedList,
-      );
+      alarmPageNotifier.state = alarmPageNotifier.state.copyWith(alarms: updatedList);
 
       await AuthUtility().saveAlarm(updatedList);
 
@@ -306,9 +233,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     state = state.copyWith(
       isEnable: alarm.isEnable,
-      selectedDays: alarm.selectedDays
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList(),
+      selectedDays: alarm.selectedDays.map((e) => Map<String, dynamic>.from(e)).toList(),
       selectedTime: alarm.dateTime,
       editingAlarmId: alarm.id,
       title: alarm.title,
@@ -321,9 +246,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       context: context,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: EditAlarmButton(),
         );
       },
@@ -343,9 +266,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       context: context,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SetAlarmBottomSheetContent(),
         );
       },
@@ -356,30 +277,19 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     final now = DateTime.now();
     final currentTime = state.selectedTime ?? DateTime.now();
 
-    DateTime alarmTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      currentTime.hour,
-      currentTime.minute,
-    );
+    DateTime alarmTime = DateTime(now.year, now.month, now.day, currentTime.hour, currentTime.minute);
 
     if (alarmTime.isBefore(now)) {
       alarmTime = alarmTime.add(Duration(days: 1));
     }
     final selectedDays = alarm.selectedDays;
 
-    List<String> dayNames = selectedDays
-        .map((dayMap) => dayMap.keys.first.toString())
-        .toList();
-    DateTime nextAlarmDateTime = calculateAlarmDateTime(
-      dayNames,
-      alarm.dateTime.hour,
-      alarm.dateTime.minute,
-    );
+    List<String> dayNames = selectedDays.map((dayMap) => dayMap.keys.first.toString()).toList();
+    DateTime nextAlarmDateTime = calculateAlarmDateTime(dayNames, alarm.dateTime.hour, alarm.dateTime.minute);
     AndroidAlarmManager.oneShotAt(
       nextAlarmDateTime,
       alarm.id!,
+      alarmClock: true,
       alarmCallback,
       exact: true,
       rescheduleOnReboot: true,
@@ -393,13 +303,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     final alarmTime = alarm.dateTime;
     final selectedDays = alarm.selectedDays;
 
-    DateTime todayAlarm = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      alarmTime.hour,
-      alarmTime.minute,
-    );
+    DateTime todayAlarm = DateTime(now.year, now.month, now.day, alarmTime.hour, alarmTime.minute);
 
     if (selectedDays.isEmpty) {
       if (now.isBefore(todayAlarm)) {
@@ -409,18 +313,12 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       }
     }
 
-    List<String> dayNames = selectedDays
-        .map((dayMap) => dayMap.keys.first.toString())
-        .toList();
+    List<String> dayNames = selectedDays.map((dayMap) => dayMap.keys.first.toString()).toList();
 
     return calculateAlarmDateTime(dayNames, alarmTime.hour, alarmTime.minute);
   }
 
-  DateTime calculateAlarmDateTime(
-    List<String> selectedDays,
-    int hour,
-    int minute,
-  ) {
+  DateTime calculateAlarmDateTime(List<String> selectedDays, int hour, int minute) {
     final weekdayMap = {
       'Sat': DateTime.saturday,
       'Sun': DateTime.sunday,
@@ -432,9 +330,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
     };
 
     DateTime now = DateTime.now();
-    List<int> selectedWeekdays = selectedDays
-        .map((day) => weekdayMap[day]!)
-        .toList();
+    List<int> selectedWeekdays = selectedDays.map((day) => weekdayMap[day]!).toList();
 
     int currentWeekday = now.weekday;
     bool isCurrentDaySelected = selectedWeekdays.contains(currentWeekday);
@@ -445,22 +341,10 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       return todayAlarm;
     }
 
-    return findNextAlarmDate(
-      selectedWeekdays,
-      currentWeekday,
-      hour,
-      minute,
-      now,
-    );
+    return findNextAlarmDate(selectedWeekdays, currentWeekday, hour, minute, now);
   }
 
-  DateTime findNextAlarmDate(
-    List<int> selectedWeekdays,
-    int currentWeekday,
-    int hour,
-    int minute,
-    DateTime now,
-  ) {
+  DateTime findNextAlarmDate(List<int> selectedWeekdays, int currentWeekday, int hour, int minute, DateTime now) {
     selectedWeekdays.sort();
 
     for (int day in selectedWeekdays) {
@@ -518,92 +402,61 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
       }
     }
 
-    DateTime nextAlarmDate = DateTime(
-      now.year,
-      now.month,
-      now.day + daysToAdd,
-      hour,
-      minute,
-    );
+    DateTime nextAlarmDate = DateTime(now.year, now.month, now.day + daysToAdd, hour, minute);
 
     return nextAlarmDate;
   }
+}
 
-  Future<void> stopAlarm() async {
-    final sendPort = IsolateNameServer.lookupPortByName(_stopPortName);
-    if (sendPort != null) {
-      sendPort.send('STOP_ALARM');
-      await alarmAudioPlayer.stop();
+final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>((ref) => SetAlarmNotifier(ref));
 
-      await Future.delayed(Duration(milliseconds: 100));
-    }
-  }
+Future<void> notificationsInitialize() async {
+  const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
+  const InitializationSettings initializationSettings = InitializationSettings(android: androidSetting);
 
-  Future<void> init() async {
-    final FlutterLocalNotificationsPlugin notificationsPlugin =
-        FlutterLocalNotificationsPlugin();
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: (response) async {
+      if (response.actionId == 'ACTION_ACCEPT') {
+        log("Stop Button Pressed");
+        await stopAlarm();
+      }
 
-    const androidSetting = AndroidInitializationSettings("@mipmap/ic_launcher");
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings();
+      if (response.payload == 'alarm_screen') {
+        log("Notifier Alarm Ring Screen");
+        await scheduleAlarm("/alarmRingScreen");
+        await platform.invokeMethod('launchAlarmActivity', {'alarmId': 0});
+      }
+    },
+    // onDidReceiveBackgroundNotificationResponse: (response) async {
+    //   if (response.actionId == 'ACTION_ACCEPT') {
+    //     log("Stop Button Pressed");
+    //     await stopAlarm();
+    //   }
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: androidSetting, iOS: iosSettings);
+    //   if (response.payload == 'alarm_screen') {
+    //     log("Notifier Alarm Ring Screen");
 
-    await notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.actionId == 'ACTION_ACCEPT') {
-          log("Stop Button Pressed");
-          await stopAlarm();
-        }
-        if (response.payload == 'alarm_screen') {
-          log("Alarm Ring Screen");
+    //     await platform.invokeMethod('launchAlarmActivity', {'alarmId': 0});
+    //   }
+    // },
+  );
+}
 
-          navigatorKey.currentState?.push(
-            MaterialPageRoute(builder: (_) => AlarmRingingScreen()),
-          );
-        }
-      },
-    );
-  }
-
-  Future<void> showNotifications({
-    required int id,
-    required String title,
-    required String body,
-  }) async {
-    final FlutterLocalNotificationsPlugin notificationsPlugin =
-        FlutterLocalNotificationsPlugin();
-
-    await notificationsPlugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          "instant_notifications_channel_id",
-          "Instant Notifications",
-          channelDescription: "Instant notifications channel",
-          importance: Importance.max,
-          priority: Priority.high,
-          fullScreenIntent: true,
-          playSound: false,
-          actions: [
-            AndroidNotificationAction(
-              'ACTION_ACCEPT',
-              'Stop',
-              showsUserInterface: true,
-              cancelNotification: true,
-            ),
-          ],
-        ),
-      ),
-      payload: 'alarm_screen',
-    );
+Future<void> stopAlarm() async {
+  final sendPort = IsolateNameServer.lookupPortByName(_stopPortName);
+  if (sendPort != null) {
+    sendPort.send('STOP_ALARM');
+    await alarmAudioPlayer.stop();
+    IsolateNameServer.removePortNameMapping(_stopPortName);
+    await Future.delayed(Duration(milliseconds: 100));
   }
 }
 
-final setAlarmProvider = StateNotifierProvider<SetAlarmNotifier, SetAlarmState>(
-  (ref) => SetAlarmNotifier(ref),
-);
+Future<void> scheduleAlarm(String route) async {
+  try {
+    await platform.invokeMethod('scheduleAlarm', {'route': route});
+  } catch (e) {
+    print('Error scheduling alarm: $e');
+  }
+}

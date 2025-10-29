@@ -1,5 +1,7 @@
 import 'package:alarm_app/views/alarm/screens/alarm_page.dart';
 import 'package:alarm_app/services/app_route_const.dart';
+import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
+import 'package:alarm_app/views/alarm/widgets/alarm_ring_screeen.dart';
 import 'package:alarm_app/views/intro/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,15 @@ GoRouter router = GoRouter(
       path: "/home",
       pageBuilder: (context, state) {
         return MaterialPage(child: AlarmPage());
+      },
+    ),
+
+     GoRoute(
+      name: AppRouteConst.homeRouteName,
+
+      path: "/Alarm",
+      pageBuilder: (context, state) {
+        return MaterialPage(child: AlarmRingingScreen());
       },
     ),
   ],
