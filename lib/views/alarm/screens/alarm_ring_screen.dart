@@ -1,8 +1,5 @@
 import 'dart:ui';
-
-import 'package:alarm_app/providers/set_alarm.dart/audio_manager.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_notifier.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 
 class AlarmRingingScreen extends StatelessWidget {

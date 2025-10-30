@@ -284,6 +284,7 @@ class SetAlarmNotifier extends StateNotifier<SetAlarmState> {
 
     List<String> dayNames = selectedDays.map((dayMap) => dayMap.keys.first.toString()).toList();
     DateTime nextAlarmDateTime = calculateAlarmDateTime(dayNames, alarm.dateTime.hour, alarm.dateTime.minute);
+
     AndroidAlarmManager.oneShotAt(
       nextAlarmDateTime,
       alarm.id!,
@@ -418,44 +419,29 @@ Future<void> notificationsInitialize() async {
       if (response.actionId == 'ACTION_ACCEPT') {
         log("Stop Button Pressed");
         await stopAlarm();
-      }
-
-      if (response.payload == 'alarm_screen') {
+      } else if (response.payload == 'alarm_screen') {
         log("Navigating to Alarm Ring Screen");
         //await platform.invokeMethod('launchAlarmActivity', {'route': '/alarmRingScreen'});
 
         await scheduleAlarm("/alarmRingScreen");
       }
     },
-    // onDidReceiveBackgroundNotificationResponse: (response) async {
-    //   if (response.actionId == 'ACTION_ACCEPT') {
-    //     log("Stop Button Pressed");
-    //     await stopAlarm();
-    //   }
-
-    //   if (response.payload == 'alarm_screen') {
-    //     log("Notifier Alarm Ring Screen");
-
-    //     await platform.invokeMethod('launchAlarmActivity', {'alarmId': 0});
-    //   }
-    // },
   );
 }
 
 Future<void> stopAlarm() async {
+  final container = ProviderContainer();
+  container.read(setAlarmProvider.notifier).setAlarm(alarm);
+
   final sendPort = IsolateNameServer.lookupPortByName(_stopPortName);
   if (sendPort != null) {
     sendPort.send('STOP_ALARM');
     await alarmAudioPlayer.stop();
     IsolateNameServer.removePortNameMapping(_stopPortName);
-    await Future.delayed(Duration(milliseconds: 100));
+    await Future.delayed(Duration(milliseconds: 500));
   }
 }
 
 Future<void> scheduleAlarm(String route) async {
-  try {
-    await platform.invokeMethod('scheduleAlarm', {'route': route});
-  } catch (e) {
-    print('Error scheduling alarm: $e');
-  }
+  await platform.invokeMethod('scheduleAlarm', {'route': route});
 }
