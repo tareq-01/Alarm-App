@@ -1,14 +1,18 @@
 import 'package:alarm_app/views/alarm/screens/alarm_page.dart';
 import 'package:alarm_app/services/app_route_const.dart';
 import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
-import 'package:alarm_app/views/alarm/widgets/alarm_ring_screeen.dart';
 import 'package:alarm_app/views/intro/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-//final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+const platform = MethodChannel('com.example.alarm_app');
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 GoRouter router = GoRouter(
+  navigatorKey: navigatorKey,
+  initialLocation: '/',
   routes: [
     GoRoute(
       name: AppRouteConst.splashScreen,
@@ -19,17 +23,14 @@ GoRouter router = GoRouter(
     ),
     GoRoute(
       name: AppRouteConst.homeRouteName,
-
       path: "/home",
       pageBuilder: (context, state) {
         return MaterialPage(child: AlarmPage());
       },
     ),
-
-     GoRoute(
-      name: AppRouteConst.homeRouteName,
-
-      path: "/Alarm",
+    GoRoute(
+      name: AppRouteConst.alarmRingScreen,
+      path: "/alarmRingScreen",
       pageBuilder: (context, state) {
         return MaterialPage(child: AlarmRingingScreen());
       },

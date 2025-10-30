@@ -2,9 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
-import 'package:alarm_app/main.dart';
 import 'package:alarm_app/providers/set_alarm.dart/audio_manager.dart';
-import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:alarm_app/providers/alarm/alarm_page_notifier.dart';
 import 'package:alarm_app/providers/set_alarm.dart/set_alarm_state.dart';
@@ -423,9 +421,10 @@ Future<void> notificationsInitialize() async {
       }
 
       if (response.payload == 'alarm_screen') {
-        log("Notifier Alarm Ring Screen");
+        log("Navigating to Alarm Ring Screen");
+        //await platform.invokeMethod('launchAlarmActivity', {'route': '/alarmRingScreen'});
+
         await scheduleAlarm("/alarmRingScreen");
-        await platform.invokeMethod('launchAlarmActivity', {'alarmId': 0});
       }
     },
     // onDidReceiveBackgroundNotificationResponse: (response) async {
