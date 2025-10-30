@@ -3,10 +3,8 @@ import 'package:alarm_app/services/app_route_const.dart';
 import 'package:alarm_app/views/alarm/screens/alarm_ring_screen.dart';
 import 'package:alarm_app/views/intro/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-const platform = MethodChannel('com.example.alarm_app');
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 

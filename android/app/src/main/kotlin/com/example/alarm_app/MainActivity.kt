@@ -18,21 +18,25 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
                 call, result ->
             if (call.method == "scheduleAlarm") {
-                val route = call.argument<String>("routerConfig") ?: "/alarmRingScreen"
+                val route = call.argument<String>("route") ?: "/alarmRingScreen"
 
-                val intent = Intent(applicationContext, AlarmReceiver::class.java)
-                intent.putExtra("route", route)
+                val intent = Intent(applicationContext, AlarmReceiver::class.java).
+                apply{putExtra("route", route)}
 
-                val pendingIntent = PendingIntent.getBroadcast(
+         val pendingIntent = PendingIntent.getBroadcast(
                     applicationContext,
+                    0,
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+               val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val triggerTime = System.currentTimeMillis() + 1000 // test: 5 sec later
+
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    pendingIntent
+                    triggerTime,
+                    pendingIntent 
                 )
                 result.success(true)
             } else {

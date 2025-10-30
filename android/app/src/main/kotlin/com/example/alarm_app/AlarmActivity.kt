@@ -1,17 +1,20 @@
 package com.example.alarm_app
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.os.Build
 
-class AlarmReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val route = intent.getStringExtra("route") ?: "/alarmRingScreen"
+import io.flutter.embedding.android.FlutterActivity
+import android.os.Bundle
+import android.view.WindowManager
 
-        val launchIntent = Intent(context, MainActivity::class.java)
-        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        launchIntent.putExtra("routerConfig", route)
+class AlarmActivity : FlutterActivity() {
+    override fun getInitialRoute(): String? {
+        return intent?.getStringExtra("route") ?: "/alarmRingScreen"
+    }
 
-        context.startActivity(launchIntent)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+        )
     }
 }

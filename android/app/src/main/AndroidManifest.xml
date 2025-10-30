@@ -22,12 +22,14 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
-            android:theme="@style/LaunchTheme"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
             android:showWhenLocked="true"
             android:turnScreenOn="true">
+
+                            
             
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
@@ -76,9 +78,9 @@
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false" />
         <receiver
-    android:name=".AlarmReceiver"
-    android:enabled="true"
-    android:exported="true" />
+            android:name=".AlarmReceiver"
+            android:enabled="true"
+            android:exported="true" />
 
   
         <receiver
