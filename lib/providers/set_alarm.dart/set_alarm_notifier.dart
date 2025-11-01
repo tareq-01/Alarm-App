@@ -418,7 +418,7 @@ Future<void> notificationsInitialize() async {
     onDidReceiveNotificationResponse: (response) async {
       if (response.actionId == 'ACTION_ACCEPT') {
         log("Stop Button Pressed");
-        await stopAlarm();
+        await stopAlarm(response.id ?? 0);
       } else if (response.payload == 'alarm_screen') {
         log("Navigating to Alarm Ring Screen");
         //await platform.invokeMethod('launchAlarmActivity', {'route': '/alarmRingScreen'});
@@ -429,17 +429,24 @@ Future<void> notificationsInitialize() async {
   );
 }
 
-Future<void> stopAlarm() async {
+Future<void> stopAlarm(int alarmId) async {
   final container = ProviderContainer();
-  container.read(setAlarmProvider.notifier).setAlarm(alarm);
 
+  final alarmPageNotifier = container.read(alarmPageProvider.notifier);
+  final alarms = alarmPageNotifier.state.alarms ?? [];
   final sendPort = IsolateNameServer.lookupPortByName(_stopPortName);
   if (sendPort != null) {
     sendPort.send('STOP_ALARM');
     await alarmAudioPlayer.stop();
     IsolateNameServer.removePortNameMapping(_stopPortName);
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
   }
+
+  final currentAlarm = alarms.firstWhere((alarm) => alarm.id == alarmId);
+
+  if (currentAlarm.id != null) {
+    await container.read(setAlarmProvider.notifier).setAlarm(currentAlarm);
+  } 
 }
 
 Future<void> scheduleAlarm(String route) async {
